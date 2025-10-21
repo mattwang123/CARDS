@@ -1,1 +1,11 @@
 dataset/
+CLAUDE.md
+data/.env
+*.pyc
+__pycache__/
+data/raw/
+data/embeddings/
+data/insufficient_dataset/
+data/insufficient_dataset_umwp/
+models/checkpoints/
+results/
