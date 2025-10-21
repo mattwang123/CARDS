@@ -63,7 +63,7 @@ class MathSolver:
         Returns:
             str: Formatted prompt
         """
-        prompt = f"""Solve the following question and give your numerical answer please. Show your work and put your final numerical answer in \\boxed{{}}.
+        prompt = f"""Solve the following question and give your answer please. Show your work and put your final numerical answer in \\boxed{{}}.
 
 Problem: {question}
 

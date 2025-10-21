@@ -16,8 +16,16 @@ from tqdm import tqdm
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from models.probe import MLPProbe
-from viz.plot_embeddings import plot_embedding_visualization
+from viz.plot_embeddings import plot_embedding_pca_3d, plot_all_layers_pca
 from viz.plot_probe_results import plot_layer_performance, plot_confusion_matrices
+from viz.mech_interp import (
+    analyze_activation_statistics,
+    analyze_cosine_similarity,
+    plot_weight_importance,
+    plot_activation_stats,
+    plot_cosine_similarity_trends
+)
+from sklearn.linear_model import LogisticRegression
 
 
 def load_embeddings_and_labels(embeddings_path, labels_path):
@@ -49,35 +57,48 @@ def load_embeddings_and_labels(embeddings_path, labels_path):
     return embeddings, labels
 
 
-def train_probe_for_layer(layer_idx, train_embeddings, train_labels, test_embeddings, test_labels,
-                          hidden_dim=128, num_epochs=50, lr=0.001, device='cpu'):
-    """
-    Train a probe for a specific layer
+def train_linear_probe(train_embeddings, train_labels, test_embeddings, test_labels):
+    """Train logistic regression probe"""
+    probe = LogisticRegression(max_iter=1000, random_state=42)
+    probe.fit(train_embeddings, train_labels)
 
-    Args:
-        layer_idx: Which layer to train on
-        train_embeddings: Training embeddings for this layer (num_samples, hidden_dim)
-        train_labels: Training labels (num_samples,)
-        test_embeddings: Test embeddings for this layer
-        test_labels: Test labels
-        hidden_dim: Hidden dimension for MLP probe
-        num_epochs: Number of training epochs
-        lr: Learning rate
-        device: cpu or cuda
+    # Predictions
+    train_preds = probe.predict(train_embeddings)
+    test_preds = probe.predict(test_embeddings)
 
-    Returns:
-        dict: Metrics (accuracy, f1, precision, recall, confusion_matrix)
-    """
-    input_dim = train_embeddings.shape[1]
+    # Metrics
+    train_acc = accuracy_score(train_labels, train_preds)
+    train_f1 = f1_score(train_labels, train_preds)
+    test_acc = accuracy_score(test_labels, test_preds)
+    test_f1 = f1_score(test_labels, test_preds)
+    test_precision = precision_score(test_labels, test_preds)
+    test_recall = recall_score(test_labels, test_preds)
+    test_cm = confusion_matrix(test_labels, test_preds)
 
-    # Create probe
+    metrics = {
+        'train_accuracy': float(train_acc),
+        'train_f1': float(train_f1),
+        'test_accuracy': float(test_acc),
+        'test_f1': float(test_f1),
+        'test_precision': float(test_precision),
+        'test_recall': float(test_recall),
+        'confusion_matrix': test_cm.tolist()
+    }
+
+    # Extract weights for visualization
+    weights = probe.coef_[0]  # Shape: (input_dim,)
+
+    return probe, metrics, weights
+
+
+def train_mlp_probe(train_embeddings, train_labels, test_embeddings, test_labels,
+                   input_dim, hidden_dim=128, num_epochs=50, lr=0.001, device='cpu'):
+    """Train MLP probe"""
     probe = MLPProbe(input_dim=input_dim, hidden_dim=hidden_dim, num_classes=2).to(device)
 
-    # Loss and optimizer
     criterion = nn.CrossEntropyLoss()
     optimizer = optim.Adam(probe.parameters(), lr=lr)
 
-    # Convert to tensors
     X_train = torch.FloatTensor(train_embeddings).to(device)
     y_train = torch.LongTensor(train_labels).to(device)
     X_test = torch.FloatTensor(test_embeddings).to(device)
@@ -95,12 +116,10 @@ def train_probe_for_layer(layer_idx, train_embeddings, train_labels, test_embedd
     # Evaluation
     probe.eval()
     with torch.no_grad():
-        # Train set
         train_preds = probe.predict(X_train).cpu().numpy()
         train_acc = accuracy_score(train_labels, train_preds)
         train_f1 = f1_score(train_labels, train_preds)
 
-        # Test set
         test_preds = probe.predict(X_test).cpu().numpy()
         test_acc = accuracy_score(test_labels, test_preds)
         test_f1 = f1_score(test_labels, test_preds)
@@ -109,7 +128,6 @@ def train_probe_for_layer(layer_idx, train_embeddings, train_labels, test_embedd
         test_cm = confusion_matrix(test_labels, test_preds)
 
     metrics = {
-        'layer': layer_idx,
         'train_accuracy': float(train_acc),
         'train_f1': float(train_f1),
         'test_accuracy': float(test_acc),
@@ -119,7 +137,45 @@ def train_probe_for_layer(layer_idx, train_embeddings, train_labels, test_embedd
         'confusion_matrix': test_cm.tolist()
     }
 
-    return probe, metrics
+    return probe, metrics, None
+
+
+def train_probe_for_layer(layer_idx, train_embeddings, train_labels, test_embeddings, test_labels,
+                          probe_type='mlp', hidden_dim=128, num_epochs=50, lr=0.001, device='cpu'):
+    """
+    Train a probe for a specific layer
+
+    Args:
+        layer_idx: Which layer to train on
+        train_embeddings: Training embeddings for this layer (num_samples, hidden_dim)
+        train_labels: Training labels (num_samples,)
+        test_embeddings: Test embeddings for this layer
+        test_labels: Test labels
+        probe_type: 'linear' or 'mlp'
+        hidden_dim: Hidden dimension for MLP probe
+        num_epochs: Number of training epochs
+        lr: Learning rate
+        device: cpu or cuda
+
+    Returns:
+        probe: Trained probe
+        dict: Metrics
+        weights: Linear probe weights (None for MLP)
+    """
+    input_dim = train_embeddings.shape[1]
+
+    if probe_type == 'linear':
+        probe, metrics, weights = train_linear_probe(
+            train_embeddings, train_labels, test_embeddings, test_labels
+        )
+    else:  # mlp
+        probe, metrics, weights = train_mlp_probe(
+            train_embeddings, train_labels, test_embeddings, test_labels,
+            input_dim, hidden_dim, num_epochs, lr, device
+        )
+
+    metrics['layer'] = layer_idx
+    return probe, metrics, weights
 
 
 def main():
@@ -143,10 +199,13 @@ def main():
     parser.add_argument('--device', type=str, default='cpu',
                         choices=['cpu', 'cuda'],
                         help='Device to use')
-    parser.add_argument('--visualize_embeddings', action='store_true',
-                        help='Create embedding visualizations before training')
-    parser.add_argument('--layers_to_visualize', type=str, default='0,13,27',
-                        help='Comma-separated layer indices to visualize (default: 0,13,27)')
+    parser.add_argument('--probe_type', type=str, default='linear',
+                        choices=['linear', 'mlp'],
+                        help='Probe type: linear (logistic regression) or mlp (default: linear)')
+    parser.add_argument('--visualize_all', action='store_true',
+                        help='Create visualizations for ALL layers (3D PCA, etc.)')
+    parser.add_argument('--skip_pca', action='store_true',
+                        help='Skip PCA visualization (faster)')
 
     args = parser.parse_args()
 
@@ -170,32 +229,53 @@ def main():
 
     num_samples, num_layers, hidden_size = train_embeddings.shape
 
-    # Visualize embeddings (optional)
-    if args.visualize_embeddings:
+    print(f"\nProbe type: {args.probe_type.upper()}")
+
+    # Create subfolder structure
+    pca_dir = os.path.join(args.output_dir, 'pca_3d')
+    mech_interp_dir = os.path.join(args.output_dir, 'mech_interp')
+    results_dir = os.path.join(args.output_dir, 'results')
+    os.makedirs(pca_dir, exist_ok=True)
+    os.makedirs(mech_interp_dir, exist_ok=True)
+    os.makedirs(results_dir, exist_ok=True)
+
+    # Mechanistic interpretability: Activation statistics and cosine similarity
+    print("\n" + "="*80)
+    print("MECHANISTIC INTERPRETABILITY ANALYSIS")
+    print("="*80)
+
+    activation_stats = analyze_activation_statistics(train_embeddings, train_labels)
+    cosine_sims = analyze_cosine_similarity(train_embeddings, train_labels)
+
+    plot_activation_stats(
+        activation_stats,
+        os.path.join(mech_interp_dir, 'activation_statistics.png')
+    )
+
+    plot_cosine_similarity_trends(
+        cosine_sims,
+        os.path.join(mech_interp_dir, 'cosine_similarity.png')
+    )
+
+    # 3D PCA visualization for all layers (optional, can be slow)
+    if args.visualize_all and not args.skip_pca:
         print("\n" + "="*80)
-        print("VISUALIZING EMBEDDINGS")
+        print("GENERATING 3D PCA FOR ALL LAYERS")
         print("="*80)
 
-        layers_to_viz = [int(x) for x in args.layers_to_visualize.split(',')]
-        viz_dir = os.path.join(args.output_dir, 'visualizations')
-        os.makedirs(viz_dir, exist_ok=True)
-
-        for layer_idx in layers_to_viz:
-            if layer_idx < num_layers:
-                print(f"\nVisualizing layer {layer_idx}...")
-                plot_embedding_visualization(
-                    train_embeddings[:, layer_idx, :],
-                    train_labels,
-                    layer_idx,
-                    os.path.join(viz_dir, f'layer_{layer_idx}_embeddings.png')
-                )
+        plot_all_layers_pca(
+            train_embeddings,
+            train_labels,
+            pca_dir
+        )
 
     # Train probes for all layers
     print("\n" + "="*80)
-    print("TRAINING PROBES")
+    print(f"TRAINING {args.probe_type.upper()} PROBES FOR ALL LAYERS")
     print("="*80)
 
     all_metrics = []
+    all_weights = []  # For linear probes
 
     for layer_idx in tqdm(range(num_layers), desc="Training probes"):
         # Extract embeddings for this layer
@@ -203,12 +283,13 @@ def main():
         test_layer_emb = test_embeddings[:, layer_idx, :]
 
         # Train probe
-        probe, metrics = train_probe_for_layer(
+        probe, metrics, weights = train_probe_for_layer(
             layer_idx,
             train_layer_emb,
             train_labels,
             test_layer_emb,
             test_labels,
+            probe_type=args.probe_type,
             hidden_dim=args.hidden_dim,
             num_epochs=args.num_epochs,
             lr=args.lr,
@@ -216,10 +297,18 @@ def main():
         )
 
         all_metrics.append(metrics)
+        if weights is not None:
+            all_weights.append(weights)
 
         # Save probe
-        probe_path = os.path.join(args.output_dir, f'layer_{layer_idx}_probe.pt')
-        torch.save(probe.state_dict(), probe_path)
+        probe_path = os.path.join(results_dir, f'layer_{layer_idx}_probe.pt')
+        if args.probe_type == 'linear':
+            # Save sklearn model with pickle
+            import pickle
+            with open(probe_path.replace('.pt', '.pkl'), 'wb') as f:
+                pickle.dump(probe, f)
+        else:
+            torch.save(probe.state_dict(), probe_path)
 
     # Save all metrics
     metrics_path = os.path.join(args.output_dir, 'all_metrics.json')
@@ -248,30 +337,40 @@ def main():
 
     # Plot results
     print("\n" + "="*80)
-    print("GENERATING VISUALIZATIONS")
+    print("GENERATING RESULT VISUALIZATIONS")
     print("="*80)
-
-    viz_dir = os.path.join(args.output_dir, 'visualizations')
-    os.makedirs(viz_dir, exist_ok=True)
 
     # Layer performance plot
     plot_layer_performance(
         all_metrics,
-        os.path.join(viz_dir, 'layer_performance.png')
+        os.path.join(results_dir, 'layer_performance.png')
     )
 
     # Confusion matrices for best layers
+    top_layers = sorted(range(len(all_metrics)), key=lambda i: all_metrics[i]['test_f1'], reverse=True)[:3]
     plot_confusion_matrices(
         all_metrics,
-        [best_f1_idx, best_acc_idx],
-        os.path.join(viz_dir, 'confusion_matrices.png')
+        top_layers,
+        os.path.join(results_dir, 'confusion_matrices_top3.png')
     )
+
+    # Weight importance visualization (for linear probes only)
+    if args.probe_type == 'linear' and len(all_weights) > 0:
+        print("\nGenerating weight importance visualizations...")
+        plot_weight_importance(
+            all_weights,
+            all_metrics,
+            os.path.join(mech_interp_dir, 'weight_importance.png')
+        )
 
     print("\n" + "="*80)
     print("TRAINING COMPLETE!")
     print("="*80)
     print(f"\nResults saved to: {args.output_dir}")
-    print(f"Visualizations saved to: {viz_dir}")
+    print(f"  - Probe models: {results_dir}")
+    print(f"  - 3D PCA plots: {pca_dir}")
+    print(f"  - Mech interp: {mech_interp_dir}")
+    print(f"  - Metrics: {metrics_path}")
 
 
 if __name__ == '__main__':

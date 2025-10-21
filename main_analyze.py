@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 import sys
+from tqdm import tqdm
 from pathlib import Path
 
 # Add project root to path
@@ -47,8 +48,8 @@ def run_model_inference(solver, dataset):
 
     responses_data = []
 
-    for item in dataset:
-        print(f"\nProcessing: {item['question'][:80]}...")
+    for item in tqdm(dataset):
+        print(f"\nProcessing: {item['question']}...")
 
         # Generate response
         response = solver.solve(item['question'])
@@ -72,7 +73,7 @@ def run_model_inference(solver, dataset):
         # Print immediate feedback
         model_answer = extract_numerical_answer(response)
         print(f"  Model answer: {model_answer}")
-        print(f"  Response preview: {response[:150]}...")
+        print(f"  Response preview: {response}")
 
     return responses_data
 
