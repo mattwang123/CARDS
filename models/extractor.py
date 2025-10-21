@@ -4,12 +4,19 @@ Extract hidden states from frozen LLM for all layers
 import argparse
 import json
 import os
+import sys
 import numpy as np
 import torch
 from transformers import AutoTokenizer, AutoModel
 from tqdm import tqdm
 
-from .config import get_model_config
+# Handle both direct execution and module import
+try:
+    from .config import get_model_config
+except ImportError:
+    # Add parent directory to path for direct execution
+    sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    from models.config import get_model_config
 
 
 class HiddenStateExtractor:
