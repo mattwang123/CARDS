@@ -10,3 +10,5 @@ data/insufficient_dataset_umwp/
 models/checkpoints/
 results/
 experiments/
+src/scripts/.env
+PROPOSAL_1/data/.env
