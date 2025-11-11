@@ -4,9 +4,9 @@
 # 2024, Johns Hopkins University (Author: Prabhav Singh)
 # Apache 2.0.
 
-#SBATCH --job-name=CARDS
+#SBATCH --job-name=CARDS-FULL-RUN
 #SBATCH --nodes=1
-#SBATCH --mem-per-cpu=16
+#SBATCH --mem-per-cpu=64G
 #SBATCH --gpus=1
 #SBATCH --partition=gpu-a100
 #SBATCH --account=a100acct
@@ -17,20 +17,34 @@ module load cuda/12.1
 
 conda activate llm_rubric_env
 
-cd /export/fs06/psingh54/COURSEWORK/CARDS
+cd /export/fs06/psingh54/CARDS/src
 
 export PYTHONPATH=.
 
-python main.py \
-    --train_embeddings data/embeddings/umwp_train_llama-3.2-3b-instruct_last_token.npy \
-    --train_labels data/insufficient_dataset_umwp/umwp_train.json \
-    --test_embeddings data/embeddings/umwp_test_llama-3.2-3b-instruct_last_token.npy \
-    --test_labels data/insufficient_dataset_umwp/umwp_test.json \
+echo "=========================="
+echo "Running Linear Probes (LR)"
+echo "=========================="
+python run_all_probes.py \
+    --probe_type linear \
+    --pooling last_token \
+    --device cuda \
+    --linear_C 1.0 \
+    --output_dir experiments/all_probes_linear
+
+echo "=========================="
+echo "Running MLP Probes"
+echo "=========================="
+python run_all_probes.py \
     --probe_type mlp \
-    --visualize_all
+    --pooling last_token \
+    --device cuda \
+    --mlp_hidden_dim 128 \
+    --mlp_epochs 75 \
+    --mlp_lr 0.001 \
+    --output_dir experiments/all_probes_mlp
 
-python run_advanced_interp.py --train_labels data/insufficient_dataset_umwp/umwp_train.json --train_embeddings data/embeddings/umwp_train_llama-3.2-3b-instruct_last_token.npy \
- --test_embeddings data/embeddings/umwp_test_llama-3.2-3b-instruct_last_token.npy --test_labels data/insufficient_dataset_umwp/umwp_test.json
+echo "=========================="
+echo "All experiments complete!"
+echo "=========================="
 
-python main_analyze.py --model_name llama-3.2-3b-instruct --data_path data/insufficient_dataset_umwp/umwp_train.json --device cuda \
- --max_examples 500 --max_new_tokens 1024 
+# END
