@@ -2,10 +2,10 @@
 Model configuration registry
 
 This file defines the 4 core models for our experiments:
-1. qwen2.5-math-1.5b: Math-specialized small model
-2. qwen2.5-1.5b: General-purpose small model (non-math)
-3. llama-3.2-3b-instruct: General instruction-tuned model
-4. llama-3.1-8b-instruct: Larger model for scale testing
+1. qwen2.5-math-1.5b: Math-specialized small model (1.5B)
+2. qwen2.5-1.5b: General-purpose small model (1.5B, non-math)
+3. llama-3.2-3b-instruct: General instruction-tuned model (3B)
+4. qwen2.5-math-7b: Math-specialized larger model (7B)
 """
 
 MODELS = {
@@ -30,12 +30,12 @@ MODELS = {
         'requires_auth': True,
         'description': 'Meta Llama 3.2 3B instruction-tuned model'
     },
-    'llama-3.1-8b-instruct': {
-        'name': 'meta-llama/Llama-3.1-8B-Instruct',
-        'num_layers': 32,
-        'hidden_size': 4096,
-        'requires_auth': True,
-        'description': 'Meta Llama 3.1 8B instruction-tuned model for scale testing'
+    'qwen2.5-math-7b': {
+        'name': 'Qwen/Qwen2.5-Math-7B-Instruct',
+        'num_layers': 28,
+        'hidden_size': 3584,
+        'requires_auth': False,
+        'description': 'Math-specialized 7B model from Qwen team'
     }
 }
 

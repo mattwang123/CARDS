@@ -45,7 +45,7 @@ DATASETS = {
 }
 
 # Model names from config
-MODELS = ['qwen2.5-math-1.5b', 'qwen2.5-1.5b', 'llama-3.2-3b-instruct', 'llama-3.1-8b-instruct']
+MODELS = ['qwen2.5-math-1.5b', 'qwen2.5-1.5b', 'llama-3.2-3b-instruct', 'qwen2.5-math-7b']
 
 
 def get_embedding_path(dataset_name, split, model_name, pooling):
@@ -122,7 +122,7 @@ def train_linear_probe(train_embeddings_layer, train_labels, C=1.0):
     Returns:
         LogisticRegression model
     """
-    probe = LogisticRegression(C=C, max_iter=1000, random_state=42, class_weight='balanced')
+    probe = LogisticRegression(C=C, max_iter=3000, random_state=42, class_weight='balanced')
     probe.fit(train_embeddings_layer, train_labels)
     return probe
 
