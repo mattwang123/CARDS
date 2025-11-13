@@ -38,17 +38,19 @@ class MathSolver:
             trust_remote_code=True
         )
 
-        # Load model
+        # Add padding token if missing
+        if self.tokenizer.pad_token is None:
+            self.tokenizer.pad_token = self.tokenizer.eos_token
+
+        # Load model (same pattern as extractor.py - works without accelerate)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config['name'],
-            torch_dtype=torch.float32,  # Use float32 for CPU
-            device_map='auto' if device == 'cuda' else None,
+            torch_dtype=torch.float32,  # Always use float32 for numerical stability
             trust_remote_code=True
         )
 
-        if device == 'cpu':
-            self.model = self.model.to('cpu')
-
+        # Move to device
+        self.model.to(device)
         self.model.eval()
 
         print(f"Model loaded successfully")
