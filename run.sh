@@ -21,30 +21,4 @@ cd /export/fs06/psingh54/CARDS/src
 
 export PYTHONPATH=.
 
-echo "=========================="
-echo "Running Linear Probes (LR)"
-echo "=========================="
-python run_all_probes.py \
-    --probe_type linear \
-    --pooling last_token \
-    --device cuda \
-    --linear_C 1.0 \
-    --output_dir experiments/all_probes_linear
-
-echo "=========================="
-echo "Running MLP Probes"
-echo "=========================="
-python run_all_probes.py \
-    --probe_type mlp \
-    --pooling last_token \
-    --device cuda \
-    --mlp_hidden_dim 128 \
-    --mlp_epochs 75 \
-    --mlp_lr 0.001 \
-    --output_dir experiments/all_probes_mlp
-
-echo "=========================="
-echo "All experiments complete!"
-echo "=========================="
-
-# END
+python run_all_probes.py --probe_type linear --pooling mean --device cuda --linear_C 1.0 --output_dir experiments/all_probes_linear_max

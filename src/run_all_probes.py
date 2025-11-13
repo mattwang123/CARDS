@@ -122,7 +122,7 @@ def train_linear_probe(train_embeddings_layer, train_labels, C=1.0):
     Returns:
         LogisticRegression model
     """
-    probe = LogisticRegression(C=C, max_iter=3000, random_state=42, class_weight='balanced')
+    probe = LogisticRegression(C=C, max_iter=5000, random_state=42, class_weight='balanced')
     probe.fit(train_embeddings_layer, train_labels)
     return probe
 
