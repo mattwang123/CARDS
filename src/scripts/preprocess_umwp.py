@@ -25,7 +25,7 @@ def load_jsonl(file_path):
     return data
 
 
-def reformat_umwp(input_file, output_dir, train_ratio=0.8, random_seed=42):
+def reformat_umwp(input_file, output_dir, train_ratio=0.8, random_seed=42, multiclass=False):
     """
     Reformat UMWP dataset to match our insufficient dataset format
 
@@ -91,6 +91,8 @@ def reformat_umwp(input_file, output_dir, train_ratio=0.8, random_seed=42):
                 'answer': f"#### {answer_value}",  # GSM8K format for compatibility
                 'is_sufficient': True
             }
+            if multiclass:
+                reformatted_item['multiclass_label'] = 0  # Answerable = class 0
             reformatted.append(reformatted_item)
 
         # Process unanswerable questions (is_sufficient = False)
@@ -112,6 +114,8 @@ def reformat_umwp(input_file, output_dir, train_ratio=0.8, random_seed=42):
                 'removed_value': "N/A",  # UMWP doesn't specify exact removed value
                 'removed_description': f"Category {item['category']}: {category_desc}"
             }
+            if multiclass:
+                reformatted_item['multiclass_label'] = item['category']  # Categories 1-5
             reformatted.append(reformatted_item)
 
         # Shuffle to mix answerable and unanswerable
@@ -125,8 +129,12 @@ def reformat_umwp(input_file, output_dir, train_ratio=0.8, random_seed=42):
     # Save to output directory
     os.makedirs(output_dir, exist_ok=True)
 
-    train_file = os.path.join(output_dir, 'umwp_train.json')
-    test_file = os.path.join(output_dir, 'umwp_test.json')
+    if multiclass:
+        train_file = os.path.join(output_dir, 'umwp_multiclass_train.json')
+        test_file = os.path.join(output_dir, 'umwp_multiclass_test.json')
+    else:
+        train_file = os.path.join(output_dir, 'umwp_train.json')
+        test_file = os.path.join(output_dir, 'umwp_test.json')
 
     with open(train_file, 'w') as f:
         json.dump(train_data, f, indent=2)
@@ -142,10 +150,27 @@ def reformat_umwp(input_file, output_dir, train_ratio=0.8, random_seed=42):
     print(f"  Sufficient: {sum(1 for x in train_data if x['is_sufficient'])}")
     print(f"  Insufficient: {sum(1 for x in train_data if not x['is_sufficient'])}")
 
+    if multiclass:
+        from collections import Counter
+        train_labels = [x.get('multiclass_label', -1) for x in train_data]
+        label_counts = Counter(train_labels)
+        print(f"  Multiclass distribution:")
+        for label in sorted(label_counts.keys()):
+            class_name = "Answerable" if label == 0 else f"Category {label}"
+            print(f"    {label} ({class_name}): {label_counts[label]}")
+
     print(f"\nTest: {test_file}")
     print(f"  Total: {len(test_data)}")
     print(f"  Sufficient: {sum(1 for x in test_data if x['is_sufficient'])}")
     print(f"  Insufficient: {sum(1 for x in test_data if not x['is_sufficient'])}")
+
+    if multiclass:
+        test_labels = [x.get('multiclass_label', -1) for x in test_data]
+        label_counts = Counter(test_labels)
+        print(f"  Multiclass distribution:")
+        for label in sorted(label_counts.keys()):
+            class_name = "Answerable" if label == 0 else f"Category {label}"
+            print(f"    {label} ({class_name}): {label_counts[label]}")
 
     # Print examples
     print("\n" + "="*80)
@@ -176,10 +201,12 @@ def main():
                         help='Ratio of data for training (default: 0.8)')
     parser.add_argument('--random_seed', type=int, default=42,
                         help='Random seed for reproducibility (default: 42)')
+    parser.add_argument('--multiclass', action='store_true',
+                    help='Create multiclass dataset (6 classes: 0=answerable, 1-5=insufficient types)')
 
     args = parser.parse_args()
 
-    reformat_umwp(args.input_file, args.output_dir, args.train_ratio, args.random_seed)
+    reformat_umwp(args.input_file, args.output_dir, args.train_ratio, args.random_seed, args.multiclass)
 
 
 if __name__ == '__main__':

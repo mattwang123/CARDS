@@ -1,11 +1,13 @@
 name: cards
 channels:
   - pytorch
+  - nvidia
   - conda-forge
   - defaults
 dependencies:
   - python=3.10
   - pytorch::pytorch=2.2.0
+  - pytorch::pytorch-cuda=12.1
   - numpy=1.24.3
   - pip=23.3
   - pip:
