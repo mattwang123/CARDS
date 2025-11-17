@@ -127,6 +127,56 @@ Solution:"""
 
         return responses
 
+    def create_assessment_prompt(self, question):
+        """
+        Create prompt for binary sufficiency assessment (reuses same format as solve)
+        
+        Args:
+            question: Math problem text
+        
+        Returns:
+            str: Formatted prompt
+        """
+        prompt = f"""Can this math problem be solved with the given information? Show your reasoning and put your final answer (Yes or No) in \\boxed{{}}.
+
+    Problem: {question}
+
+    Solution:"""
+        return prompt
+
+    def assess(self, question):
+        """
+        Assess if question is solvable (reuses same generation logic as solve)
+        
+        Args:
+            question: Math problem text
+        
+        Returns:
+            str: Model response
+        """
+        prompt = self.create_assessment_prompt(question)
+        
+        # Reuse exact same tokenization and generation as solve()
+        inputs = self.tokenizer(prompt, return_tensors='pt')
+        inputs = {k: v.to(self.device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = self.model.generate(
+                **inputs,
+                max_new_tokens=self.max_new_tokens,
+                temperature=self.temperature,
+                do_sample=True,
+                top_p=0.9,
+                pad_token_id=self.tokenizer.eos_token_id
+            )
+
+        response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        if prompt in response:
+            response = response.replace(prompt, '').strip()
+
+        return response
+
 
 if __name__ == '__main__':
     # Test the solver

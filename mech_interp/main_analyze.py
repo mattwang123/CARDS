@@ -12,7 +12,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).parent))
 
 from models.inference import MathSolver
-from models.answer_parser import extract_numerical_answer
+from models.answer_parser import extract_numerical_answer, extract_binary_answer
 from viz.analyze_responses import analyze_responses, print_analysis_report, save_analysis_report
 
 
@@ -33,45 +33,45 @@ def load_dataset(data_path, max_examples=None):
     return data
 
 
-def run_model_inference(solver, dataset):
+def run_model_inference(solver, dataset, mode='solve'):
     """
     Run model on all examples and collect responses
-
+    
     Args:
         solver: MathSolver instance
         dataset: List of examples
-
-    Returns:
-        list: Dataset with responses added
+        mode: 'solve' or 'assess'
     """
-    print("\nRunning model inference...")
-
+    print(f"\nRunning model inference in {mode} mode...")
+    
     responses_data = []
-
+    
     for item in tqdm(dataset):
         print(f"\nProcessing: {item['question']}...")
 
-        # Generate response
-        response = solver.solve(item['question'])
-
-        # Add to results
+        # Choose method based on mode
+        if mode == 'solve':
+            response = solver.solve(item['question'])
+            model_answer = extract_numerical_answer(response)
+        elif mode == 'assess':
+            response = solver.assess(item['question'])
+            model_answer = extract_binary_answer(response)
+        
+        # Rest stays exactly the same...
         result = {
             'question': item['question'],
             'answer': item['answer'],
             'is_sufficient': item['is_sufficient'],
             'response': response
         }
-
-        # Add extra fields for insufficient examples
+        
         if not item['is_sufficient']:
             result['original_question'] = item.get('original_question', '')
             result['removed_value'] = item.get('removed_value', '')
             result['removed_description'] = item.get('removed_description', '')
 
         responses_data.append(result)
-
-        # Print immediate feedback
-        model_answer = extract_numerical_answer(response)
+        
         print(f"  Model answer: {model_answer}")
         print(f"  Response preview: {response}")
 
@@ -105,6 +105,9 @@ def main():
                         help='Sampling temperature (default: 0.7)')
     parser.add_argument('--max_examples', type=int, default=None,
                         help='Maximum number of examples to analyze (default: None = all)')
+    parser.add_argument('--mode', type=str, default='solve', 
+                    choices=['solve', 'assess'],
+                    help='Analysis mode: solve (default) or assess (binary assessment)')
 
     args = parser.parse_args()
 
@@ -138,7 +141,7 @@ def main():
     print("\n" + "="*80)
     print("RUNNING INFERENCE")
     print("="*80)
-    responses_data = run_model_inference(solver, dataset)
+    responses_data = run_model_inference(solver, dataset, args.mode)
 
     # Save responses
     output_basename = Path(args.data_path).stem
