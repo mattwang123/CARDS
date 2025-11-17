@@ -108,6 +108,29 @@ def has_answer(text):
     """
     return extract_numerical_answer(text) is not None
 
+def extract_binary_answer(text):
+    """
+    Extract Yes/No answer from \\boxed{} format (reuses same logic as extract_numerical_answer)
+    
+    Args:
+        text: Model response text
+        
+    Returns:
+        str: 'Yes', 'No', or None if not found
+    """
+    # Reuse existing boxed extraction logic
+    pattern = r'\\boxed\{([^}]+)\}'
+    matches = re.findall(pattern, text)
+
+    if matches:
+        answer_str = matches[-1].strip().lower()
+        if 'yes' in answer_str:
+            return 'Yes'
+        elif 'no' in answer_str:
+            return 'No'
+    
+    return None
+
 
 if __name__ == '__main__':
     # Test cases
