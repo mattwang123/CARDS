@@ -1,10 +1,10 @@
 """
-Experiment 1C: Behavioral Evaluation - Three-valued outcomes
+Experiment 1C: Behavioral Evaluation - Enhanced three-valued outcomes
 
 This script:
 1. Loads ALL questions (sufficient + insufficient) from test sets
 2. Prompts models with standard solving prompts (with explicit refusal permission)
-3. Classifies responses as Correct/Incorrect/Refused
+3. Classifies responses into 5 categories for detailed analysis
 4. Saves per-sample results for correlation analysis
 """
 import argparse
@@ -46,22 +46,17 @@ def load_judge_prompt():
     
     if not prompt_path.exists():
         # Create default behavioral judge prompt if it doesn't exist
-        default_prompt = """You are evaluating math problem solving behavior and correctness.
+        default_prompt = """You are evaluating mathematical correctness for problems that CAN be solved.
 
-BEHAVIOR CLASSIFICATION:
-- "attempted": Model provides mathematical work, calculations, or numerical answer (even if wrong)
-- "refused": Model explicitly states it cannot solve, needs more information, or refuses to answer
-
-CORRECTNESS EVALUATION (for attempts only):
-- "correct": Final numerical answer matches ground truth
-- "incorrect": Final numerical answer is wrong or unclear
-- "n/a": For refusals (no answer to evaluate)
+The model attempted to solve a sufficient math problem. Compare the model's final numerical answer with the expected answer.
 
 Return JSON with:
-- "behavior": "attempted" or "refused"
-- "correctness": "correct", "incorrect", or "n/a"
-- "extracted_answer": numerical answer found or "refused"
-- "explanation": brief reasoning"""
+- "correctness": "correct" or "incorrect"
+- "model_answer": the numerical answer you extracted from model output
+- "expected_answer": the provided expected answer
+- "explanation": brief reasoning about why it's correct or incorrect
+
+Focus only on whether the final numerical answer matches, regardless of the solution method."""
         
         os.makedirs(prompt_path.parent, exist_ok=True)
         with open(prompt_path, 'w') as f:
@@ -82,73 +77,33 @@ def load_all_questions(dataset_name):
     return data
 
 
-def classify_behavioral_outcome(model_output, ground_truth, is_sufficient, judge_prompt, openai_client):
-    """
-    Classify behavioral outcome into three categories: correct/incorrect/refused
-    
-    Returns:
-        str: 'correct', 'incorrect', or 'refused'
-    """
-    output_lower = model_output.lower()
-    
-    # Strong refusal indicators
-    refusal_patterns = [
-        r'cannot.*be.*solved', r'cannot.*solve', r'insufficient.*information',
-        r'not.*enough.*information', r'missing.*information', r'unable.*to.*solve',
-        r'not.*solvable', r'impossible.*to.*solve', r'lack.*information',
-        r'need.*more.*information', r'cannot.*determine'
-    ]
-    
-    # Check for explicit refusal first
-    for pattern in refusal_patterns:
-        if re.search(pattern, output_lower):
-            return 'refused'
-    
-    # Check for boxed answer (clear attempt)
-    boxed_match = re.search(r'\\boxed\{([^}]+)\}', model_output)
-    if boxed_match:
-        if is_sufficient:
-            # Use GPT-4o-mini to judge correctness for sufficient problems
-            return judge_correctness_with_gpt(model_output, ground_truth, judge_prompt, openai_client)
-        else:
-            # Any attempt on insufficient problem is incorrect
-            return 'incorrect'
-    
-    # Check for mathematical work without boxed answer
-    has_calculations = bool(re.search(r'[\+\-\*/=]', model_output))
-    has_numbers = bool(re.search(r'\d+', model_output))
-    
-    if has_calculations and has_numbers:
-        # Model attempted but didn't follow format properly
-        if is_sufficient:
-            return judge_correctness_with_gpt(model_output, ground_truth, judge_prompt, openai_client)
-        else:
-            return 'incorrect'
-    
-    # No clear mathematical work or refusal - treat as refused
-    return 'refused'
-
-
 def judge_correctness_with_gpt(model_output, ground_truth, judge_prompt, openai_client):
-    """Use GPT-4o-mini to judge correctness of attempted solutions"""
+    """Judge mathematical correctness for sufficient problems only"""
+    
+    # Extract ground truth number from "#### X" format
+    if ground_truth.startswith("####"):
+        expected_answer = ground_truth.replace("####", "").strip()
+    else:
+        expected_answer = ground_truth.strip()
+    
     evaluation_prompt = f"""{judge_prompt}
 
 ## YOUR TASK
 
-**Ground Truth Answer**: {ground_truth}
+**Expected Answer**: {expected_answer}
 
 **Model Output**:
 {model_output}
 
-The model attempted to solve. Please evaluate correctness. Respond with JSON only:"""
+Please evaluate if the model's final numerical answer is correct. Respond with JSON only:"""
 
     try:
         response = openai_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
                 {
-                    "role": "system",
-                    "content": "You are evaluating math problem solving behavior and correctness. Respond only with valid JSON."
+                    "role": "system", 
+                    "content": "You are evaluating mathematical correctness. Respond only with valid JSON."
                 },
                 {
                     "role": "user",
@@ -157,7 +112,7 @@ The model attempted to solve. Please evaluate correctness. Respond with JSON onl
             ],
             response_format={"type": "json_object"},
             temperature=0.3,
-            max_tokens=300
+            max_tokens=200
         )
 
         result = json.loads(response.choices[0].message.content)
@@ -165,12 +120,55 @@ The model attempted to solve. Please evaluate correctness. Respond with JSON onl
 
     except Exception as e:
         print(f"  ⚠ Error in GPT-4o-mini judgment: {e}")
-        return 'incorrect'  # Default to incorrect on error
+        return 'incorrect'
+
+
+def classify_behavioral_outcome_enhanced(model_output, ground_truth, is_sufficient, judge_prompt, openai_client):
+    """
+    Enhanced classification distinguishing different failure modes
+    
+    Returns:
+        str: 'correct', 'math_error', 'overconfident_attempt', 'appropriate_refusal', 'inappropriate_refusal'
+    """
+    output_lower = model_output.lower()
+    
+    # Strong refusal indicators
+    refusal_patterns = [
+        r'cannot.*be.*solved', r'cannot.*solve', r'insufficient.*information',
+        r'not.*enough.*information', r'missing.*information', r'unable.*to.*solve',
+        r'not.*solvable', r'impossible.*to.*solve', r'lack.*information',
+        r'need.*more.*information', r'cannot.*determine', r'not.*possible.*to.*solve'
+    ]
+    
+    # Check for explicit refusal
+    is_refusal = any(re.search(pattern, output_lower) for pattern in refusal_patterns)
+    
+    if is_refusal:
+        if is_sufficient:
+            return 'inappropriate_refusal'  # Should have attempted but refused
+        else:
+            return 'appropriate_refusal'    # Correctly refused insufficient problem
+    
+    # Model attempted to solve - check if it should have
+    if is_sufficient:
+        # For sufficient problems, judge mathematical correctness
+        if ground_truth == "N/A":
+            # This shouldn't happen for sufficient problems, but handle gracefully
+            return 'math_error'
+        
+        correctness = judge_correctness_with_gpt(model_output, ground_truth, judge_prompt, openai_client)
+        if correctness == 'correct':
+            return 'correct'
+        else:
+            return 'math_error'  # Wrong math on solvable problem
+    else:
+        # Insufficient problem but model attempted - this is overconfidence
+        return 'overconfident_attempt'
 
 
 def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, judge_prompt,
                                output_dir, test_mode=False, test_samples=3):
-    """Evaluate behavioral outcomes on ALL questions"""
+    """Evaluate behavioral outcomes on ALL questions with enhanced classification"""
     print(f"\n{'='*80}")
     print(f"MODEL: {model_name} | DATASET: {dataset_name} | BEHAVIORAL EVALUATION")
     print(f"{'='*80}")
@@ -210,7 +208,7 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
         return load_results(model_name, dataset_name, output_dir)
 
     # Load model
-    print(f"\n[1/2] Loading model: {model_name}")
+    print(f"\n[1/2] Loading model : {model_name}")
     solver = MathSolver(model_name, device=device, max_new_tokens=512, temperature=0.7)
 
     # Process each question
@@ -230,12 +228,12 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
             model_output = f"[ERROR: {str(e)}]"
             output_tokens = 0
 
-        # Classify behavioral outcome
-        behavioral_outcome = classify_behavioral_outcome(
+        # Enhanced behavioral classification
+        behavioral_outcome = classify_behavioral_outcome_enhanced(
             model_output, ground_truth, is_sufficient, judge_prompt, openai_client
         )
 
-        # Store result
+        # Store enhanced result
         result = {
             'question_idx': idx,
             'question': question,
@@ -243,7 +241,14 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
             'ground_truth': ground_truth,
             'model_output': model_output,
             'output_tokens': output_tokens,
-            'behavioral_outcome': behavioral_outcome  # 'correct'/'incorrect'/'refused'
+            'behavioral_outcome': behavioral_outcome,  # Enhanced 5-category classification
+            
+            # Additional fields for analysis
+            'attempted': behavioral_outcome not in ['appropriate_refusal', 'inappropriate_refusal'],
+            'correct_behavior': (
+                (is_sufficient and behavioral_outcome == 'correct') or
+                (not is_sufficient and behavioral_outcome == 'appropriate_refusal')
+            )
         }
         results.append(result)
 
@@ -254,35 +259,41 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
                 json.dump({
                     'model': model_name,
                     'dataset': dataset_name,
-                    'mode': 'behavioral_evaluation',
+                    'mode': 'behavioral_evaluation_enhanced',
                     'total_questions': len(questions),
                     'completed': len(results),
                     'results': results
                 }, f, indent=2)
 
-    # Compute behavioral metrics
-    correct_count = sum(1 for r in results if r['behavioral_outcome'] == 'correct')
-    incorrect_count = sum(1 for r in results if r['behavioral_outcome'] == 'incorrect')
-    refused_count = sum(1 for r in results if r['behavioral_outcome'] == 'refused')
+    # Compute enhanced metrics
+    outcome_counts = {
+        'correct': sum(1 for r in results if r['behavioral_outcome'] == 'correct'),
+        'math_error': sum(1 for r in results if r['behavioral_outcome'] == 'math_error'),
+        'overconfident_attempt': sum(1 for r in results if r['behavioral_outcome'] == 'overconfident_attempt'),
+        'appropriate_refusal': sum(1 for r in results if r['behavioral_outcome'] == 'appropriate_refusal'),
+        'inappropriate_refusal': sum(1 for r in results if r['behavioral_outcome'] == 'inappropriate_refusal')
+    }
     
     total = len(results)
-    correct_rate = correct_count / total if total > 0 else 0.0
-    incorrect_rate = incorrect_count / total if total > 0 else 0.0
-    refusal_rate = refused_count / total if total > 0 else 0.0
+    
+    # Key rates for hypothesis testing
+    attempt_rate = (outcome_counts['correct'] + outcome_counts['math_error'] + outcome_counts['overconfident_attempt']) / total
+    refusal_rate = (outcome_counts['appropriate_refusal'] + outcome_counts['inappropriate_refusal']) / total
+    overconfidence_rate = outcome_counts['overconfident_attempt'] / total
+    appropriate_behavior_rate = (outcome_counts['correct'] + outcome_counts['appropriate_refusal']) / total
 
-    # Compute by sufficiency type
+    # Compute by sufficiency type for detailed analysis
     sufficient_results = [r for r in results if r['is_sufficient']]
     insufficient_results = [r for r in results if not r['is_sufficient']]
     
-    # Sufficient questions
+    # Sufficient question outcomes
     sufficient_correct = sum(1 for r in sufficient_results if r['behavioral_outcome'] == 'correct')
-    sufficient_incorrect = sum(1 for r in sufficient_results if r['behavioral_outcome'] == 'incorrect')
-    sufficient_refused = sum(1 for r in sufficient_results if r['behavioral_outcome'] == 'refused')
+    sufficient_math_error = sum(1 for r in sufficient_results if r['behavioral_outcome'] == 'math_error')
+    sufficient_inappropriate_refusal = sum(1 for r in sufficient_results if r['behavioral_outcome'] == 'inappropriate_refusal')
     
-    # Insufficient questions  
-    insufficient_correct = sum(1 for r in insufficient_results if r['behavioral_outcome'] == 'correct')
-    insufficient_incorrect = sum(1 for r in insufficient_results if r['behavioral_outcome'] == 'incorrect')
-    insufficient_refused = sum(1 for r in insufficient_results if r['behavioral_outcome'] == 'refused')
+    # Insufficient question outcomes
+    insufficient_overconfident = sum(1 for r in insufficient_results if r['behavioral_outcome'] == 'overconfident_attempt')
+    insufficient_appropriate_refusal = sum(1 for r in insufficient_results if r['behavioral_outcome'] == 'appropriate_refusal')
 
     # Compute efficiency metrics
     total_output_tokens = sum(r['output_tokens'] for r in results)
@@ -292,26 +303,26 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
     final_results = {
         'model': model_name,
         'dataset': dataset_name,
-        'mode': 'behavioral_evaluation',
-        'total_questions': len(results),
+        'mode': 'behavioral_evaluation_enhanced',
+        'total_questions': total,
         
-        # Overall behavioral outcomes
-        'correct_count': correct_count,
-        'incorrect_count': incorrect_count,
-        'refused_count': refused_count,
-        'correct_rate': correct_rate,
-        'incorrect_rate': incorrect_rate,
-        'refusal_rate': refusal_rate,
+        # Enhanced outcome counts
+        'outcome_counts': outcome_counts,
         
-        # By sufficiency type
+        # Key rates for hypothesis testing
+        'attempt_rate': attempt_rate,
+        'refusal_rate': refusal_rate, 
+        'overconfidence_rate': overconfidence_rate,
+        'appropriate_behavior_rate': appropriate_behavior_rate,
+        
+        # By sufficiency type (for detailed analysis)
         'sufficient_count': len(sufficient_results),
         'insufficient_count': len(insufficient_results),
         'sufficient_correct': sufficient_correct,
-        'sufficient_incorrect': sufficient_incorrect,
-        'sufficient_refused': sufficient_refused,
-        'insufficient_correct': insufficient_correct,
-        'insufficient_incorrect': insufficient_incorrect,
-        'insufficient_refused': insufficient_refused,
+        'sufficient_math_error': sufficient_math_error,
+        'sufficient_inappropriate_refusal': sufficient_inappropriate_refusal,
+        'insufficient_overconfident': insufficient_overconfident,
+        'insufficient_appropriate_refusal': insufficient_appropriate_refusal,
         
         # Efficiency
         'avg_output_tokens': avg_output_tokens,
@@ -333,18 +344,25 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
 
     # Print summary
     print(f"\n{'='*80}")
-    print(f"SUMMARY: {model_name} on {dataset_name} (Behavioral Evaluation)")
+    print(f"SUMMARY: {model_name} on {dataset_name} (Enhanced Behavioral Evaluation)")
     print(f"{'='*80}")
     print(f"Total questions: {len(results)}")
-    print(f"\nOverall Behavioral Outcomes:")
-    print(f"  Correct: {correct_count} ({correct_rate*100:.1f}%)")
-    print(f"  Incorrect: {incorrect_count} ({incorrect_rate*100:.1f}%)")
-    print(f"  Refused: {refused_count} ({refusal_rate*100:.1f}%)")
+    print(f"\nEnhanced Behavioral Outcomes:")
+    print(f"  Correct: {outcome_counts['correct']} ({outcome_counts['correct']/total*100:.1f}%)")
+    print(f"  Math Error: {outcome_counts['math_error']} ({outcome_counts['math_error']/total*100:.1f}%)")
+    print(f"  Overconfident Attempt: {outcome_counts['overconfident_attempt']} ({outcome_counts['overconfident_attempt']/total*100:.1f}%)")
+    print(f"  Appropriate Refusal: {outcome_counts['appropriate_refusal']} ({outcome_counts['appropriate_refusal']/total*100:.1f}%)")
+    print(f"  Inappropriate Refusal: {outcome_counts['inappropriate_refusal']} ({outcome_counts['inappropriate_refusal']/total*100:.1f}%)")
+    print(f"\nKey Metrics:")
+    print(f"  Attempt Rate: {attempt_rate*100:.1f}%")
+    print(f"  Refusal Rate: {refusal_rate*100:.1f}%")
+    print(f"  Overconfidence Rate: {overconfidence_rate*100:.1f}%")
+    print(f"  Appropriate Behavior Rate: {appropriate_behavior_rate*100:.1f}%")
     print(f"\nBy Question Type:")
     print(f"  Sufficient Questions ({len(sufficient_results)}):")
-    print(f"    Correct: {sufficient_correct}, Incorrect: {sufficient_incorrect}, Refused: {sufficient_refused}")
+    print(f"    Correct: {sufficient_correct}, Math Error: {sufficient_math_error}, Inappropriate Refusal: {sufficient_inappropriate_refusal}")
     print(f"  Insufficient Questions ({len(insufficient_results)}):")
-    print(f"    Correct: {insufficient_correct}, Incorrect: {insufficient_incorrect}, Refused: {insufficient_refused}")
+    print(f"    Overconfident Attempt: {insufficient_overconfident}, Appropriate Refusal: {insufficient_appropriate_refusal}")
     print(f"\nEfficiency:")
     print(f"  Avg output tokens: {avg_output_tokens:.1f}")
     print(f"{'='*80}")
@@ -353,7 +371,8 @@ def evaluate_model_on_dataset(model_name, dataset_name, device, openai_client, j
 
 
 def load_results(model_name, dataset_name, output_dir):
-    """Load existing results if available""" results_path = os.path.join(output_dir, f"{model_name}_{dataset_name}_behavioral_evaluation.json")
+    """Load existing results if available"""
+    results_path = os.path.join(output_dir, f"{model_name}_{dataset_name}_behavioral_evaluation.json")
     if os.path.exists(results_path):
         with open(results_path, 'r') as f:
             return json.load(f)
@@ -366,7 +385,7 @@ def run_test_mode(device, openai_client, judge_prompt, test_samples=3):
     dataset_name = 'umwp'
 
     print("="*80)
-    print("TEST MODE - Behavioral Evaluation")
+    print("TEST MODE - Enhanced Behavioral Evaluation")
     print("="*80)
     print(f"Model: {model_name}")
     print(f"Dataset: {dataset_name} (all questions)")
@@ -404,15 +423,21 @@ def run_test_mode(device, openai_client, judge_prompt, test_samples=3):
         print(f"\nOutput tokens: {output_tokens}")
 
         # Classify behavior
-        print(f"\nClassifying behavioral outcome...")
-        behavioral_outcome = classify_behavioral_outcome(
+        print(f"\nClassifying enhanced behavioral outcome...")
+        behavioral_outcome = classify_behavioral_outcome_enhanced(
             model_output, ground_truth, is_sufficient, judge_prompt, openai_client
         )
         
         print(f"\nBehavioral Outcome: {behavioral_outcome}")
 
         # Symbols for display
-        outcome_symbols = {'correct': '✓', 'incorrect': '✗', 'refused': '🚫'}
+        outcome_symbols = {
+            'correct': '✅', 
+            'math_error': '❌', 
+            'overconfident_attempt': '⚠️', 
+            'appropriate_refusal': '🚫✅', 
+            'inappropriate_refusal': '🚫❌'
+        }
         symbol = outcome_symbols.get(behavioral_outcome, '?')
         
         print(f"\n{symbol} {behavioral_outcome.upper()}")
@@ -427,22 +452,25 @@ def run_test_mode(device, openai_client, judge_prompt, test_samples=3):
         })
 
     # Summary
-    correct = sum(1 for r in results if r['behavioral_outcome'] == 'correct')
-    incorrect = sum(1 for r in results if r['behavioral_outcome'] == 'incorrect')
-    refused = sum(1 for r in results if r['behavioral_outcome'] == 'refused')
+    outcome_counts = {}
+    for outcome in ['correct', 'math_error', 'overconfident_attempt', 'appropriate_refusal', 'inappropriate_refusal']:
+        outcome_counts[outcome] = sum(1 for r in results if r['behavioral_outcome'] == outcome)
     
     print(f"\n{'='*80}")
     print(f"TEST SUMMARY")
     print(f"{'='*80}")
-    print(f"Correct: {correct}/{len(results)} ({correct/len(results)*100:.1f}%)")
-    print(f"Incorrect: {incorrect}/{len(results)} ({incorrect/len(results)*100:.1f}%)")
-    print(f"Refused: {refused}/{len(results)} ({refused/len(results)*100:.1f}%)")
+    for outcome, count in outcome_counts.items():
+        if count > 0:
+            print(f"{outcome}: {count}/{len(results)} ({count/len(results)*100:.1f}%)")
+    
+    appropriate_behavior = outcome_counts['correct'] + outcome_counts['appropriate_refusal']
+    print(f"\nAppropriate Behavior: {appropriate_behavior}/{len(results)} ({appropriate_behavior/len(results)*100:.1f}%)")
     print(f"{'='*80}")
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Experiment 1C: Behavioral Evaluation - Three-valued outcomes'
+        description='Experiment 1C: Enhanced Behavioral Evaluation - Five-category outcomes'
     )
     parser.add_argument('--device', type=str, default='cuda',
                         choices=['cpu', 'cuda'],
@@ -472,7 +500,7 @@ def main():
 
     # Load judge prompt
     judge_prompt = load_judge_prompt()
-    print("✓ Loaded behavioral evaluation judge prompt")
+    print("✓ Loaded enhanced behavioral evaluation judge prompt")
 
     # Test mode
     if args.test:
@@ -481,7 +509,7 @@ def main():
 
     # Full evaluation mode
     print("="*80)
-    print("BEHAVIORAL EVALUATION - ALL MODELS ON ALL DATASETS")
+    print("ENHANCED BEHAVIORAL EVALUATION - ALL MODELS ON ALL DATASETS")
     print("="*80)
     print(f"Models: {MODELS}")
     print(f"Datasets: {list(DATASETS.keys())}")
@@ -503,11 +531,11 @@ def main():
                 openai_client, judge_prompt, args.output_dir
             )
             model_results[dataset_name] = {
-                'correct_rate': result['correct_rate'],
-                'incorrect_rate': result['incorrect_rate'],
+                'attempt_rate': result['attempt_rate'],
                 'refusal_rate': result['refusal_rate'],
-                'sufficient_correct': result['sufficient_correct'],
-                'insufficient_refused': result['insufficient_refused'],
+                'overconfidence_rate': result['overconfidence_rate'],
+                'appropriate_behavior_rate': result['appropriate_behavior_rate'],
+                'outcome_counts': result['outcome_counts'],
                 'avg_output_tokens': result['avg_output_tokens']
             }
 
@@ -519,7 +547,7 @@ def main():
         json.dump(all_results, f, indent=2)
 
     print(f"\n{'='*80}")
-    print("BEHAVIORAL EVALUATION SUMMARY")
+    print("ENHANCED BEHAVIORAL EVALUATION SUMMARY")
     print(f"{'='*80}")
     print(f"\n{'Model':<25} {'UMWP':<12} {'GSM8K':<12} {'TreeCut':<12}")
     print("-" * 65)
@@ -527,7 +555,20 @@ def main():
     for model_name in MODELS:
         row = [model_name[:24]]
         for dataset_name in ['umwp', 'gsm8k', 'treecut']:
-            rate = all_results[model_name][dataset_name]['correct_rate']
+            rate = all_results[model_name][dataset_name]['appropriate_behavior_rate']
+            row.append(f"{rate*100:>5.1f}%")
+        print(f"{row[0]:<25} {row[1]:<12} {row[2]:<12} {row[3]:<12}")
+
+    print(f"\n{'='*80}")
+    print("OVERCONFIDENCE ANALYSIS (Overconfident Attempt Rate)")
+    print(f"{'='*80}")
+    print(f"\n{'Model':<25} {'UMWP':<12} {'GSM8K':<12} {'TreeCut':<12}")
+    print("-" * 65)
+
+    for model_name in MODELS:
+        row = [model_name[:24]]
+        for dataset_name in ['umwp', 'gsm8k', 'treecut']:
+            rate = all_results[model_name][dataset_name]['overconfidence_rate']
             row.append(f"{rate*100:>5.1f}%")
         print(f"{row[0]:<25} {row[1]:<12} {row[2]:<12} {row[3]:<12}")
 
