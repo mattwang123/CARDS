@@ -55,38 +55,40 @@ class MathSolver:
 
         print(f"Model loaded successfully")
 
+#     def create_prompt(self, question):
+#         """Create prompt for math problem solving"""
+#         prompt = f"""Solve the following question and give your answer please. Show your work and put your final numerical answer in \\boxed{{}}.
+
+# Problem: {question}
+
+# Solution:"""
+#         return prompt
+
     def create_prompt(self, question):
-        """
-        Create prompt for math problem solving
+        """Create prompt for math problem solving"""
+        prompt = f"""Solve this math problem. If it can be solved with the given information, show your work and put your final numerical answer in \\boxed{{}}. If it cannot be solved due to insufficient information, state that it cannot be solved.
 
-        Args:
-            question: Math problem text
+    Problem: {question}
 
-        Returns:
-            str: Formatted prompt
-        """
-        prompt = f"""Solve the following question and give your answer please. Show your work and put your final numerical answer in \\boxed{{}}.
+    Solution:"""
+        return prompt
+
+    def create_assess_prompt(self, question):
+        """Create prompt for binary assessment"""
+        prompt = f"""Can this math problem be solved with the given information? Answer Yes or No and put your answer in \\boxed{{}}.
 
 Problem: {question}
 
-Solution:"""
+Answer:"""
         return prompt
 
-    def solve(self, question):
-        """
-        Solve a single math problem
-
-        Args:
-            question: Math problem text
-
-        Returns:
-            str: Model response
-        """
-        prompt = self.create_prompt(question)
-
+    def _generate_response(self, prompt):
+        """Generate response and count output tokens"""
         # Tokenize
         inputs = self.tokenizer(prompt, return_tensors='pt')
         inputs = {k: v.to(self.device) for k, v in inputs.items()}
+        
+        input_length = inputs['input_ids'].shape[1]
 
         # Generate
         with torch.no_grad():
@@ -99,33 +101,47 @@ Solution:"""
                 pad_token_id=self.tokenizer.eos_token_id
             )
 
+        # Count only output tokens
+        output_tokens = outputs.shape[1] - input_length
+
         # Decode
         response = self.tokenizer.decode(outputs[0], skip_special_tokens=True)
 
-        # Remove the prompt from response (return only generated part)
+        # Remove prompt
         if prompt in response:
             response = response.replace(prompt, '').strip()
 
-        return response
+        return response, output_tokens
+
+    def solve(self, question):
+        """Solve a math problem"""
+        prompt = self.create_prompt(question)
+        return self._generate_response(prompt)
+
+    def assess(self, question):
+        """Assess if problem can be solved"""
+        prompt = self.create_assess_prompt(question)
+        return self._generate_response(prompt)
 
     def batch_solve(self, questions, show_progress=True):
-        """
-        Solve multiple math problems
-
-        Args:
-            questions: List of math problem texts
-            show_progress: Show progress bar
-
-        Returns:
-            list: List of model responses
-        """
+        """Solve multiple problems"""
         responses = []
-
         iterator = tqdm(questions, desc="Solving problems") if show_progress else questions
 
         for question in iterator:
-            response = self.solve(question)
-            responses.append(response)
+            response, tokens = self.solve(question)
+            responses.append((response, tokens))
+
+        return responses
+
+    def batch_assess(self, questions, show_progress=True):
+        """Assess multiple problems"""
+        responses = []
+        iterator = tqdm(questions, desc="Assessing problems") if show_progress else questions
+
+        for question in iterator:
+            response, tokens = self.assess(question)
+            responses.append((response, tokens))
 
         return responses
 
@@ -134,14 +150,12 @@ if __name__ == '__main__':
     # Test the solver
     print("Testing MathSolver...")
 
-    # Use small model for testing
-    solver = MathSolver('gpt2', device='cpu', max_new_tokens=100)
+    solver = MathSolver('qwen2.5-math-1.5b', device='cpu', max_new_tokens=100)
 
     test_question = "If John has 5 apples and gives 2 to Mary, how many does he have left?"
 
     print(f"\nQuestion: {test_question}")
-    print("\nGenerating response...")
-
-    response = solver.solve(test_question)
-
-    print(f"\nResponse: {response}")
+    
+    response, tokens = solver.solve(test_question)
+    print(f"Response: {response}")
+    print(f"Output tokens: {tokens}")

@@ -45,7 +45,7 @@ DATASETS = {
 }
 
 # Model names from config
-MODELS = ['qwen2.5-math-1.5b', 'qwen2.5-1.5b', 'llama-3.2-3b-instruct', 'qwen2.5-math-7b']
+MODELS = ['qwen2.5-math-1.5b', 'qwen2.5-1.5b', 'qwen2.5-math-7b'] #'llama-3.2-3b-instruct', 
 
 
 def get_embedding_path(dataset_name, split, model_name, pooling):
