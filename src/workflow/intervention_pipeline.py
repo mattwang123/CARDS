@@ -27,12 +27,10 @@ from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_sc
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from models.inference import MathSolver
 
-# Server paths (where embeddings are stored)
+# Server paths
 SERVER_EMBEDDING_BASE = "/export/fs06/psingh54/CARDS/src/data/embeddings"
 SERVER_PROBE_RESULTS = "/export/fs06/psingh54/CARDS/src/experiments/all_probes_linear/best_layers_linear.json"
-
-# Local paths
-LOCAL_DATA_BASE = "data/processed"
+SERVER_DATA_BASE = "/export/fs06/psingh54/CARDS/src/data/processed"
 
 # Dataset configurations
 DATASETS = {
@@ -62,8 +60,8 @@ def load_best_layers(results_path):
 
 
 def load_dataset(dataset_name, split='train'):
-    """Load dataset from local processed files"""
-    dataset_path = os.path.join(LOCAL_DATA_BASE, DATASETS[dataset_name][split])
+    """Load dataset from server processed files"""
+    dataset_path = os.path.join(SERVER_DATA_BASE, DATASETS[dataset_name][split])
     with open(dataset_path, 'r') as f:
         return json.load(f)
 

@@ -45,7 +45,7 @@ class MathSolver:
         # Load model (same pattern as extractor.py - works without accelerate)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.config['name'],
-            torch_dtype=torch.float32,  # Always use float32 for numerical stability
+            torch_dtype=torch.float32,
             trust_remote_code=True
         )
 

@@ -6,14 +6,11 @@
 
 #SBATCH --job-name=CARDS-INTERVENTION
 #SBATCH --nodes=1
-#SBATCH --mem-per-cpu=64G
+#SBATCH --mem-per-cpu=16G
 #SBATCH --gpus=1
-#SBATCH --partition=gpu-a100
+#SBATCH --partition=gpu
 #SBATCH --account=a100acct
 #SBATCH --mail-user="psingh54@jhu.edu"
-#SBATCH --time=12:00:00
-#SBATCH --output=logs/intervention_%j.out
-#SBATCH --error=logs/intervention_%j.err
 
 source /home/psingh54/.bashrc
 module load cuda/12.1
