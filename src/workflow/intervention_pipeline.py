@@ -346,7 +346,7 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
 
     # Load model for generation
     print(f"\n[5/7] Loading model for generation...")
-    solver = MathSolver(model_name, device=device, max_new_tokens=512, temperature=0.7)
+    solver = MathSolver(model_name, device=device, max_new_tokens=2048, temperature=0.7)
 
     # Helper function to generate from custom prompt
     def generate_from_prompt(prompt_text):
@@ -400,7 +400,7 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
         removed_description = item.get('removed_description', 'N/A')
 
         print(f"\n📝 INSUFFICIENT QUESTION:")
-        print(f"   {insufficient_question[:150]}{'...' if len(insufficient_question) > 150 else ''}")
+        print(f"   {insufficient_question}")
         print(f"\n🔍 GROUND TRUTH (what was removed):")
         print(f"   Value: {removed_value}")
         print(f"   Description: {removed_description}")
@@ -459,13 +459,13 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
             reprompt = create_reprompt(insufficient_question)
 
             print(f"\n💬 REPROMPT TO MODEL:")
-            print(f"   {reprompt[:200]}{'...' if len(reprompt) > 200 else ''}")
+            print(f"   {reprompt}")
 
             start_model = time.time()
             try:
                 model_response, output_tokens = generate_from_prompt(reprompt)
                 print(f"\n📤 MODEL RESPONSE:")
-                print(f"   {model_response[:300]}{'...' if len(model_response) > 300 else ''}")
+                print(f"   {model_response}")
             except Exception as e:
                 print(f"\n  ⚠ Error generating response for Q{idx}: {e}")
                 model_response = f"[ERROR: {str(e)}]"
