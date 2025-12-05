@@ -38,17 +38,20 @@ Your task is to evaluate **TWO** things:
 **Question**: If the model acknowledged insufficiency, does it correctly identify what's missing?
 
 ### Answer "YES" if:
-- Model identifies the **same** value/constraint that was removed
-- Model specifically names the missing piece of information
-- Identification is precise and matches the ground truth
+- Model identifies specific missing information that would allow solving the problem
+- Model names a concrete value, constraint, or piece of information that is actually missing
+- Even if ground truth is vague (e.g., "Category 2: Incomplete constraint"), if model identifies the specific thing that's incomplete, that's correct
 
 ### Answer "NO" if:
 - Model acknowledges insufficiency but identifies the **wrong** missing information
 - Model is too vague (e.g., "need more context" without specifying what)
-- Model lists multiple possibilities but doesn't identify the correct one
+- Model says something is missing but doesn't specify what
 
 ### Answer "N/A" if:
 - Model didn't acknowledge insufficiency at all (answered "NO" to Criterion 1)
+
+### IMPORTANT NOTE ON VAGUE GROUND TRUTH:
+If the ground truth is a category like "Category 2: Incomplete constraint information" or "N/A", focus on whether the model identified **any specific missing information** that would actually help solve the problem. If the model correctly identifies what concrete information is needed (e.g., "the value of G" or "how many students"), answer "YES" even if the ground truth is vague.
 
 ---
 

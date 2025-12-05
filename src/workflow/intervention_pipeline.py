@@ -117,104 +117,32 @@ def predict_with_probe(probe, embedding):
 
 
 def create_reprompt(question):
-    """Create reprompt with insufficiency warning"""
-    prompt = f"""Question: {question}
+    """Create reprompt with insufficiency warning as system + user"""
+    # System message with warning
+    system_msg = """You are a helpful math assistant. The following question might be missing some information needed to solve it completely. If information is missing, clearly identify what specific information you would need to provide a definitive answer. Do not make assumptions - if you cannot solve it with the given information, explain what is missing."""
 
-Note: This question is believed to be logically insufficient - it may be missing critical information or constraints needed for a unique answer.
+    # User message with question
+    user_msg = f"""Question: {question}
 
-Please identify what information is missing and what you would need to solve this problem."""
+Please analyze this question and:
+1. Determine if you have all the information needed to solve it
+2. If something is missing, identify EXACTLY what information you need
+3. Explain why you cannot provide a definitive numerical answer without this information"""
+
+    # Format as conversation (most models expect this format)
+    prompt = f"""System: {system_msg}
+
+User: {user_msg}"""
 
     return prompt
 
 
 def load_judge_prompt():
-    """Load or create GPT-4o-mini judge prompt for intervention evaluation"""
+    """Load intervention judge prompt from file"""
     prompt_path = Path(__file__).parent / "judge_prompts" / "intervention_judge.md"
 
-    if not prompt_path.exists():
-        # Create default judge prompt
-        default_prompt = """You are evaluating whether a model correctly acknowledged and identified missing information in a logically insufficient math problem.
-
-The model was informed that the question might be logically insufficient and was asked to identify what information is missing.
-
-You will be given:
-1. The ORIGINAL sufficient question (with all information)
-2. The INSUFFICIENT question (what the model saw, with something removed)
-3. What was removed (ground truth)
-4. The model's response
-
-Your task is to evaluate TWO things:
-
-## 1. ACKNOWLEDGMENT
-Does the model acknowledge that information is missing?
-- Answer "YES" if the model recognizes insufficiency and attempts to identify missing info
-- Answer "NO" if the model ignores the warning and just attempts to solve the problem with assumptions
-
-## 2. CORRECT IDENTIFICATION (only if acknowledged)
-If the model acknowledged insufficiency, does it correctly identify what's missing?
-- Answer "YES" if the model identifies the specific missing value/constraint
-- Answer "NO" if the model identifies wrong information or is too vague
-- Answer "N/A" if the model didn't acknowledge insufficiency
-
-## OUTPUT FORMAT
-Respond with valid JSON only:
-{
-  "acknowledged": "YES" | "NO",
-  "correctly_identified": "YES" | "NO" | "N/A",
-  "explanation": "<brief reasoning for your judgment>"
-}
-
-## EXAMPLES
-
-### Example 1: Acknowledged + Correctly Identified
-Original: "John has 5 apples and buys 3 more. How many does he have?"
-Insufficient: "John has some apples and buys 3 more. How many does he have?"
-Removed: "5 apples" - initial number of apples
-Model Response: "I cannot determine the exact answer because the initial number of apples John has is not specified. I would need to know how many apples John started with."
-
-Your Response:
-{
-  "acknowledged": "YES",
-  "correctly_identified": "YES",
-  "explanation": "Model correctly identified that the initial number of apples is missing"
-}
-
-### Example 2: Acknowledged + Incorrectly Identified
-Original: "Mary reads 20 pages per day for 5 days. How many pages total?"
-Insufficient: "Mary reads some pages per day for 5 days. How many pages total?"
-Removed: "20 pages" - pages per day
-Model Response: "This problem is missing information. I need to know the total number of pages in the book to answer this question."
-
-Your Response:
-{
-  "acknowledged": "YES",
-  "correctly_identified": "NO",
-  "explanation": "Model acknowledged insufficiency but identified wrong missing info (total pages instead of pages per day)"
-}
-
-### Example 3: Not Acknowledged (Makes Assumptions)
-Original: "A triangle has sides 10cm and 15cm with a 90-degree angle between them. What is the area?"
-Insufficient: "A triangle has sides 10cm and 15cm. What is the area?"
-Removed: "90-degree angle between them" - the included angle
-Model Response: "Let me assume this is a right triangle. Using the formula Area = 0.5 × base × height = 0.5 × 10 × 15 = 75 square cm. The answer is 75."
-
-Your Response:
-{
-  "acknowledged": "NO",
-  "correctly_identified": "N/A",
-  "explanation": "Model made assumptions and solved the problem instead of acknowledging missing information"
-}
-
-## IMPORTANT
-- Be strict: model must explicitly state what's missing, not just say "something is missing"
-- Focus on whether model identifies the SAME information that was removed
-- Generic statements like "more context needed" without specifics → correctly_identified = "NO"
-"""
-
-        os.makedirs(prompt_path.parent, exist_ok=True)
-        with open(prompt_path, 'w') as f:
-            f.write(default_prompt)
-        print(f"✓ Created intervention judge prompt: {prompt_path}")
+    if not os.path.exists(prompt_path):
+        raise FileNotFoundError(f"Judge prompt not found: {prompt_path}")
 
     with open(prompt_path, 'r') as f:
         return f.read()
