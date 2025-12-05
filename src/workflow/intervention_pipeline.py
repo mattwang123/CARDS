@@ -20,6 +20,7 @@ from tqdm import tqdm
 from openai import OpenAI
 from dotenv import load_dotenv
 import numpy as np
+import torch
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
 
@@ -330,12 +331,52 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
     train_f1 = f1_score(train_y, train_pred, average='macro')
     print(f"  Train accuracy: {train_acc:.3f}, F1: {train_f1:.3f}")
 
+    # Evaluate probe on test set first
+    print(f"\n[4/7] Evaluating probe on test set...")
+    test_y = np.array([0 if item.get('is_sufficient', True) else 1 for item in test_data])
+    test_pred = probe.predict(test_X)
+    test_acc = accuracy_score(test_y, test_pred)
+    test_f1 = f1_score(test_y, test_pred, average='macro')
+    test_precision = precision_score(test_y, test_pred, average='macro')
+    test_recall = recall_score(test_y, test_pred, average='macro')
+    print(f"  Test accuracy: {test_acc:.3f}")
+    print(f"  Test F1: {test_f1:.3f}")
+    print(f"  Test precision: {test_precision:.3f}")
+    print(f"  Test recall: {test_recall:.3f}")
+
     # Load model for generation
-    print(f"\n[4/7] Loading model for generation...")
+    print(f"\n[5/7] Loading model for generation...")
     solver = MathSolver(model_name, device=device, max_new_tokens=512, temperature=0.7)
 
+    # Helper function to generate from custom prompt
+    def generate_from_prompt(prompt_text):
+        """Generate response from custom prompt (bypass create_prompt)"""
+        inputs = solver.tokenizer(prompt_text, return_tensors='pt')
+        inputs = {k: v.to(solver.device) for k, v in inputs.items()}
+
+        with torch.no_grad():
+            outputs = solver.model.generate(
+                **inputs,
+                max_new_tokens=solver.max_new_tokens,
+                temperature=solver.temperature,
+                do_sample=True,
+                top_p=0.9,
+                pad_token_id=solver.tokenizer.eos_token_id
+            )
+
+        response = solver.tokenizer.decode(outputs[0], skip_special_tokens=True)
+
+        # Remove the prompt from response
+        if prompt_text in response:
+            response = response.replace(prompt_text, '').strip()
+
+        # Count output tokens
+        output_tokens = len(outputs[0]) - len(inputs['input_ids'][0])
+
+        return response, output_tokens
+
     # Run intervention on test insufficient questions
-    print(f"\n[5/7] Running intervention on {len(test_insufficient)} insufficient questions...")
+    print(f"\n[6/7] Running intervention on {len(test_insufficient)} insufficient questions...")
     print(f"{'='*80}")
 
     results = []
@@ -422,15 +463,16 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
 
             start_model = time.time()
             try:
-                model_response, _ = solver.generate(reprompt)
+                model_response, output_tokens = generate_from_prompt(reprompt)
                 print(f"\n📤 MODEL RESPONSE:")
                 print(f"   {model_response[:300]}{'...' if len(model_response) > 300 else ''}")
             except Exception as e:
                 print(f"\n  ⚠ Error generating response for Q{idx}: {e}")
                 model_response = f"[ERROR: {str(e)}]"
+                output_tokens = 0
             model_time = time.time() - start_model
             model_times.append(model_time)
-            print(f"   Generation time: {model_time:.2f}s")
+            print(f"   Generation time: {model_time:.2f}s ({output_tokens} tokens)")
 
             result['model_response'] = model_response
             result['model_time'] = model_time
@@ -477,7 +519,7 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
             print(f"{'='*80}")
 
     # Compute metrics
-    print(f"\n[6/7] Computing metrics...")
+    print(f"\n[7/7] Computing metrics...")
 
     total_questions = len(test_insufficient)
     probe_detection_rate = probe_detected / total_questions if total_questions > 0 else 0
@@ -518,11 +560,17 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
             'train_accuracy': train_acc,
             'train_f1': train_f1,
             'train_time': train_time
+        },
+        'probe_test_performance': {
+            'test_accuracy': test_acc,
+            'test_f1': test_f1,
+            'test_precision': test_precision,
+            'test_recall': test_recall
         }
     }
 
     # Save results
-    print(f"\n[7/7] Saving results...")
+    print(f"\nSaving results...")
     results_data = {
         'metrics': metrics,
         'detailed_results': results
@@ -537,10 +585,15 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
     print(f"\n{'='*80}")
     print(f"SUMMARY: {model_name} on {dataset_name}")
     print(f"{'='*80}")
-    print(f"Total insufficient questions: {total_questions}")
-    print(f"Probe detected: {probe_detected} ({probe_detection_rate*100:.1f}%)")
-    print(f"Probe missed: {probe_missed} ({probe_miss_rate*100:.1f}%)")
-    print(f"\nOf detected by probe:")
+    print(f"\nProbe Test Performance:")
+    print(f"  Accuracy: {test_acc:.3f}")
+    print(f"  F1: {test_f1:.3f}")
+    print(f"  Precision: {test_precision:.3f}")
+    print(f"  Recall: {test_recall:.3f}")
+    print(f"\nIntervention on {total_questions} insufficient questions:")
+    print(f"  Probe detected: {probe_detected} ({probe_detection_rate*100:.1f}%)")
+    print(f"  Probe missed: {probe_missed} ({probe_miss_rate*100:.1f}%)")
+    print(f"\nOf {probe_detected} detected by probe:")
     print(f"  Acknowledged insufficiency: {acknowledged_count} ({acknowledgment_rate*100:.1f}%)")
     print(f"  Correctly identified: {correctly_identified_count} ({identification_rate_overall*100:.1f}%)")
     print(f"\nTiming (avg per question):")
