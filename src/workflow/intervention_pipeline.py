@@ -336,6 +336,7 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
 
     # Run intervention on test insufficient questions
     print(f"\n[5/7] Running intervention on {len(test_insufficient)} insufficient questions...")
+    print(f"{'='*80}")
 
     results = []
     probe_times = []
@@ -347,11 +348,21 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
     acknowledged_count = 0
     correctly_identified_count = 0
 
-    for idx, item in enumerate(tqdm(test_insufficient, desc="Processing")):
+    for idx, item in enumerate(test_insufficient):
+        print(f"\n{'─'*80}")
+        print(f"Question {idx+1}/{len(test_insufficient)}")
+        print(f"{'─'*80}")
+
         insufficient_question = item['question']
         original_question = item.get('original_question', insufficient_question)
         removed_value = item.get('removed_value', 'N/A')
         removed_description = item.get('removed_description', 'N/A')
+
+        print(f"\n📝 INSUFFICIENT QUESTION:")
+        print(f"   {insufficient_question[:150]}{'...' if len(insufficient_question) > 150 else ''}")
+        print(f"\n🔍 GROUND TRUTH (what was removed):")
+        print(f"   Value: {removed_value}")
+        print(f"   Description: {removed_description}")
 
         # Find corresponding test embedding
         # Match by question text
@@ -368,10 +379,15 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
         question_embedding = test_X[test_idx]
 
         # 1. Use probe to detect insufficiency
+        print(f"\n🤖 PROBE DETECTION:")
         start_probe = time.time()
         probe_result = predict_with_probe(probe, question_embedding)
         probe_time = time.time() - start_probe
         probe_times.append(probe_time)
+
+        print(f"   Prediction: {'INSUFFICIENT' if probe_result['prediction'] == 1 else 'SUFFICIENT'}")
+        print(f"   Probability: {probe_result['probability_insufficient']:.3f}")
+        print(f"   Time: {probe_time*1000:.1f}ms")
 
         result = {
             'question_idx': idx,
@@ -392,21 +408,29 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
             result['judgment'] = None
             result['model_time'] = 0
             result['judge_time'] = 0
+            print(f"\n❌ PROBE MISSED - Skipping intervention")
         else:  # Predicted insufficient (true positive)
             probe_detected += 1
             result['probe_detected'] = True
+            print(f"\n✓ PROBE DETECTED - Running intervention...")
 
             # 2. Reprompt model with insufficiency warning
             reprompt = create_reprompt(insufficient_question)
 
+            print(f"\n💬 REPROMPT TO MODEL:")
+            print(f"   {reprompt[:200]}{'...' if len(reprompt) > 200 else ''}")
+
             start_model = time.time()
             try:
                 model_response, _ = solver.generate(reprompt)
+                print(f"\n📤 MODEL RESPONSE:")
+                print(f"   {model_response[:300]}{'...' if len(model_response) > 300 else ''}")
             except Exception as e:
                 print(f"\n  ⚠ Error generating response for Q{idx}: {e}")
                 model_response = f"[ERROR: {str(e)}]"
             model_time = time.time() - start_model
             model_times.append(model_time)
+            print(f"   Generation time: {model_time:.2f}s")
 
             result['model_response'] = model_response
             result['model_time'] = model_time
@@ -414,6 +438,7 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
             # 3. Judge with GPT-4o-mini
             removed_info = f"Removed: {removed_value}\nDescription: {removed_description}"
 
+            print(f"\n⚖️  GPT-4o-mini JUDGMENT:")
             start_judge = time.time()
             judgment = judge_intervention(
                 original_question,
@@ -426,6 +451,11 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
             judge_time = time.time() - start_judge
             judge_times.append(judge_time)
 
+            print(f"   Acknowledged: {judgment['acknowledged']}")
+            print(f"   Correctly Identified: {judgment['correctly_identified']}")
+            print(f"   Explanation: {judgment['explanation']}")
+            print(f"   Judge time: {judge_time:.2f}s")
+
             result['judgment'] = judgment
             result['judge_time'] = judge_time
 
@@ -436,6 +466,15 @@ def run_intervention_pipeline(model_name, dataset_name, device, openai_client, j
                     correctly_identified_count += 1
 
         results.append(result)
+
+        # Print running stats every 10 questions
+        if (idx + 1) % 10 == 0:
+            print(f"\n{'='*80}")
+            print(f"RUNNING STATS (after {idx+1} questions):")
+            print(f"  Probe detected: {probe_detected}/{idx+1} ({probe_detected/(idx+1)*100:.1f}%)")
+            print(f"  Acknowledged: {acknowledged_count}/{probe_detected} ({acknowledged_count/probe_detected*100:.1f}% of detected)" if probe_detected > 0 else "  Acknowledged: 0/0")
+            print(f"  Correctly identified: {correctly_identified_count}/{probe_detected} ({correctly_identified_count/probe_detected*100:.1f}% of detected)" if probe_detected > 0 else "  Correctly identified: 0/0")
+            print(f"{'='*80}")
 
     # Compute metrics
     print(f"\n[6/7] Computing metrics...")
