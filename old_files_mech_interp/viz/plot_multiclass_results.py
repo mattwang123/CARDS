@@ -10,15 +10,135 @@ from pathlib import Path
 # Class names for interpretability
 CLASS_NAMES = {
     0: "Answerable",
-    1: "Missing Critical Info", 
-    2: "Incomplete Constraint",
-    3: "Contradictory Info",
-    4: "Irrelevant Question",
-    5: "Other Unanswerability"
+    1: "Key Info Missing",       # (i)
+    2: "Ambiguous Info",         # (ii)
+    3: "Unrealistic Cond.",      # (iii)
+    4: "Unrelated Object",       # (iv)
+    5: "Question Missing"        # (v)
 }
 
 # Colors for each class (consistent across plots)
 CLASS_COLORS = ['#2E86AB', '#A23B72', '#F18F01', '#C73E1D', '#8E44AD', '#27AE60']
+
+
+def find_best_layers(results):
+    """
+    Find the best performing layer for each model based on macro F1
+    
+    Returns:
+        Dict mapping model_name -> (best_layer_idx, best_f1_score, best_metrics)
+    """
+    best_layers = {}
+    
+    for model_name, model_results in results.items():
+        best_layer_key = max(model_results.keys(), 
+                           key=lambda k: model_results[k]['f1_macro'])
+        best_metrics = model_results[best_layer_key]
+        best_layer_idx = int(best_layer_key.split('_')[1])
+        best_f1 = best_metrics['f1_macro']
+        
+        best_layers[model_name] = (best_layer_idx, best_f1, best_metrics)
+    
+    return best_layers
+
+
+def plot_paper_confusion_matrices(results, output_path):
+    """
+    Create horizontal confusion matrices for top 3 models using the same style as individual matrices
+    
+    Args:
+        results: Dict from multiclass experiment
+        output_path: Where to save the plot
+    """
+    best_layers = find_best_layers(results)
+    
+    # Get top 3 models by F1 score
+    top_models = sorted(best_layers.items(), key=lambda x: x[1][1], reverse=True)[:3]
+    
+    # Paper-friendly figure size
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6))
+    
+    for idx, (model_name, (best_layer_idx, best_f1, best_metrics)) in enumerate(top_models):
+        # Get confusion matrix
+        cm = np.array(best_metrics['confusion_matrix'])
+        
+        # Normalize confusion matrix (same as individual matrices)
+        cm_norm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+        
+        # Use same style as plot_confusion_matrix function
+        sns.heatmap(cm_norm, annot=True, fmt='.2f', cmap='Blues',
+                   xticklabels=[f"{i}: {CLASS_NAMES[i][:10]}" for i in range(6)],
+                   yticklabels=[f"{i}: {CLASS_NAMES[i][:10]}" for i in range(6)],
+                   ax=axes[idx], cbar=True, vmin=0, vmax=1)
+        
+        axes[idx].set_ylabel('True Label')
+        axes[idx].set_xlabel('Predicted Label')
+        axes[idx].set_title(f'Confusion Matrix (Normalized)\n{model_name} - Layer {best_layer_idx}')
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Paper confusion matrices saved to: {output_path}")
+
+
+def plot_paper_layer_performance(results, output_path):
+    """
+    Create layer performance plot optimized for paper inclusion (without weighted F1)
+    
+    Args:
+        results: Dict from multiclass experiment
+        output_path: Where to save the plot
+    """
+    best_layers = find_best_layers(results)
+    
+    # Paper-friendly figure size
+    fig, axes = plt.subplots(1, 2, figsize=(16, 6))
+    
+    for model_name, model_results in results.items():
+        layers = [int(k.split('_')[1]) for k in model_results.keys()]
+        layers.sort()
+        
+        # Extract metrics
+        macro_f1 = [model_results[f'layer_{l}']['f1_macro'] for l in layers]
+        accuracy = [model_results[f'layer_{l}']['accuracy'] for l in layers]
+        
+        best_layer_idx, best_f1, _ = best_layers[model_name]
+        
+        # Plot macro F1 (same style as original)
+        axes[0].plot(layers, macro_f1, 'o-', label=model_name, linewidth=2, markersize=4)
+        
+        # Plot accuracy (same style as original)
+        axes[1].plot(layers, accuracy, '^-', label=model_name, linewidth=2, markersize=4)
+    
+    # Configure macro F1 plot (same style as original)
+    axes[0].axhline(y=1/6, color='gray', linestyle='--', label='Random (6-class)', alpha=0.5)
+    axes[0].set_xlabel('Layer Index')
+    axes[0].set_ylabel('Macro F1 Score')
+    axes[0].set_title('Macro F1 vs Layer (Most Important)')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+    axes[0].set_ylim([0, 1])
+    
+    # Configure accuracy plot (same style as original)
+    axes[1].axhline(y=1/6, color='gray', linestyle='--', label='Random (6-class)', alpha=0.5)
+    axes[1].set_xlabel('Layer Index')
+    axes[1].set_ylabel('Accuracy')
+    axes[1].set_title('Accuracy vs Layer')
+    axes[1].legend()
+    axes[1].grid(True, alpha=0.3)
+    axes[1].set_ylim([0, 1])
+    
+    # Add best layer information
+    best_layers_text = "Best Layers: " + ", ".join([f"{name}: {layer}" 
+                                                    for name, (layer, f1, _) in best_layers.items()])
+    fig.text(0.5, 0.02, best_layers_text, ha='center', fontsize=9)
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+    
+    print(f"Paper layer performance plot saved to: {output_path}")
 
 
 def plot_multiclass_layer_performance(results, output_path):
@@ -284,12 +404,12 @@ def analyze_multiclass_results(results):
                 good_classes.append((i, CLASS_NAMES[i], f1))
         
         if problematic_classes:
-            print(f"  ⚠️  Problematic classes (F1 < 0.3):")
+            print(f"  Problematic classes (F1 < 0.3):")
             for i, name, f1 in problematic_classes:
                 print(f"    {i} ({name}): {f1:.3f}")
         
         if good_classes:
-            print(f"  ✅ Well-learned classes (F1 > 0.6):")
+            print(f"  Well-learned classes (F1 > 0.6):")
             for i, name, f1 in good_classes:
                 print(f"    {i} ({name}): {f1:.3f}")
     
@@ -327,7 +447,18 @@ def create_multiclass_plots(results_path, output_dir):
         f"{output_dir}/multiclass_model_comparison.png"
     )
     
-    # 3. Confusion matrices for each model
+    # 3. Paper-optimized plots
+    plot_paper_layer_performance(
+        results,
+        f"{output_dir}/paper_layer_performance.png"
+    )
+    
+    plot_paper_confusion_matrices(
+        results,
+        f"{output_dir}/paper_confusion_matrices.png"
+    )
+    
+    # 4. Confusion matrices for each model
     for model_name in results.keys():
         safe_model_name = model_name.replace('/', '_').replace('.', '_')
         plot_confusion_matrix(
@@ -336,7 +467,7 @@ def create_multiclass_plots(results_path, output_dir):
             f"{output_dir}/confusion_matrix_{safe_model_name}.png"
         )
     
-    # 4. Print analysis
+    # 5. Print analysis
     analyze_multiclass_results(results)
     
     print(f"\nAll plots saved to: {output_dir}")
