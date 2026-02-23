@@ -1,5 +1,5 @@
 """
-Core analysis logic for confounding factors.
+Core analysis logic for confounding factors with detailed ablation.
 STANDARD MODE: Train on Train Set -> Test on Full Test Set.
 """
 import argparse
@@ -108,7 +108,7 @@ def analyze_confounders(args):
     print(f"Latent Probe F1: {probe_f1:.4f}")
 
     # ==========================================
-    # 3. TRAIN CONFOUNDER BASELINES
+    # 3. TRAIN CONFOUNDER BASELINES (ABLATION)
     # ==========================================
     print("\n" + "="*60)
     print("CONFOUNDER ABLATION STUDY")
@@ -126,6 +126,8 @@ def analyze_confounders(args):
     print(f"{'BASELINE MODEL':<20} {'F1 SCORE':<10} {'GAP TO PROBE':<10}")
     print("-" * 45)
     
+    results = {}
+
     for name, (start, end) in baselines.items():
         # Train on TRAIN set
         clf = LogisticRegression(class_weight='balanced', random_state=42)
@@ -137,6 +139,15 @@ def analyze_confounders(args):
         
         gap = probe_f1 - f1
         print(f"{name:<20} {f1:.4f}     +{gap:.4f}")
+        
+        results[name] = {
+            "f1": f1,
+            "gap": gap
+        }
+
+    # Store results to a file if needed
+    with open('confounder_ablation_results.json', 'w') as f:
+        json.dump(results, f, indent=2)
 
     # ==========================================
     # 4. CORRELATIONS
