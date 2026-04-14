@@ -10,6 +10,7 @@ data/insufficient_dataset_umwp/
 models/checkpoints/
 results/
 experiments/
+exp_temporal/
 src/scripts/.env
 PROPOSAL_1/data/.env
 src/data/embeddings
