@@ -183,7 +183,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', type=str, default='math')
     parser.add_argument('--tp', type=int, default=2)
-    parser.add_argument('--output_dir', type=str, default='experiments/dynamic_tracking')
+    parser.add_argument('--output_dir', type=str, default='experiments/dynamic_tracking_test')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--test_samples', type=int, default=5)
     args = parser.parse_args()
