@@ -5,7 +5,7 @@ vllm serve meta-llama/Llama-3.3-70B-Instruct \
     --trust-remote-code
 
 
-curl http://e02:8000/v1/chat/completions \
+curl http://e03:8000/v1/chat/completions \
   -H "Content-Type: application/json" \
   -d '{
     "model": "meta-llama/Llama-3.3-70B-Instruct",

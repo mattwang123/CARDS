@@ -28,6 +28,7 @@ import json
 import os
 import sys
 import re
+import gc
 from pathlib import Path
 from tqdm import tqdm
 from openai import OpenAI
@@ -45,16 +46,29 @@ DATASETS = {
 }
 
 MODELS = [
-    # --- SMALL/MEDIUM SCALE (~1.5B - 3B) ---
+    # --- SMALL/MEDIUM SCALE (~1.5B - 4B) ---
     'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
     'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    'google/gemma-3-4b-it',
     
-    # --- MEDIUM/LARGE SCALE (~7B - 8B) ---
+    # --- MEDIUM/LARGE SCALE (~7B - 9B) ---
     'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
     'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    'google/gemma-3-12b-it',
+    'allenai/Olmo-3-7B-Think',
+    'allenai/Olmo-3-7B-Instruct',
+    'deepseek-ai/deepseek-math-7b-instruct',
     
-    # --- LARGE SCALE (14B+) ---
+    # --- LARGE SCALE (14B - 32B) ---
     'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+    'google/gemma-3-27b-it',
+    'allenai/Olmo-3-32B-Think',
+    'openai/gpt-oss-20b',
+    'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+    
+    # --- MASSIVE SCALE (70B+) ---
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+    'Qwen/Qwen2.5-72B-Instruct'
 ]
 
 # --- UTILS & PROMPTING ---
@@ -114,14 +128,13 @@ def run_generation(args):
     from vllm import LLM, SamplingParams
     print(f"\n[PHASE: GENERATION] Loading models for {args.domain}...")
     
-    save_interval = 20 # Save progress every 20 queries
+    save_interval = 20
 
     for model_name in MODELS:
         model_slug = model_name.split('/')[-1]
         model_dir = Path(args.output_dir) / args.domain / model_slug
         model_dir.mkdir(parents=True, exist_ok=True)
 
-        # Check if all datasets for this model are already generated completely
         all_done = True
         for ds_name in DATASETS[args.domain]:
             ds_save_path = model_dir / f"{ds_name}_generations.json"
@@ -129,7 +142,6 @@ def run_generation(args):
                 all_done = False
                 break
             else:
-                # Need to check if the file is fully complete vs partially generated
                 with open(DATASETS[args.domain][ds_name], 'r') as f:
                     total_expected = len(json.load(f)) if not args.test else args.test_samples
                 with open(ds_save_path, 'r') as f:
@@ -142,12 +154,13 @@ def run_generation(args):
                     break
 
         if all_done and not args.test:
-            print(f"  - Skipping {model_slug}, all datasets fully generated.")
+            print(f"  - [RESUME HIT] Skipping {model_slug}, all datasets fully generated.")
             continue
 
         print(f"  - Loading {model_name}...")
         try:
-            llm = LLM(model=model_name, tensor_parallel_size=args.tp, trust_remote_code=True)
+            # Added max_model_len to safely fit massive models on dual A100s
+            llm = LLM(model=model_name, tensor_parallel_size=args.tp, trust_remote_code=True, max_model_len=4096)
         except Exception as e:
             print(f"    ! Failed to load {model_name}: {e}")
             continue
@@ -162,7 +175,6 @@ def run_generation(args):
             gen_results = []
             start_idx = 0
 
-            # Load partial progress if it exists
             if ds_save_path.exists() and not args.test:
                 try:
                     with open(ds_save_path, 'r') as f:
@@ -179,7 +191,6 @@ def run_generation(args):
             max_tokens = 512 if "think" in model_name.lower() else 128
             sampling_params = SamplingParams(temperature=0.0, max_tokens=max_tokens)
             
-            # Process in chunks to save progress
             for i in tqdm(range(start_idx, len(data), save_interval), desc=f"Generating {ds_name}"):
                 chunk = data[i:i + save_interval]
                 prompts = [format_prompt(item['question'], model_name) for item in chunk]
@@ -193,12 +204,12 @@ def run_generation(args):
                         "model_output": out.outputs[0].text
                     })
                 
-                # Save chunk progress
                 with open(ds_save_path, 'w') as f:
                     json.dump(gen_results, f, indent=2)
 
-        # Clean up for next model
+        # Nuclear Cleanup for 70B models
         del llm
+        gc.collect()
         import torch
         torch.cuda.empty_cache()
 
@@ -299,9 +310,9 @@ if __name__ == "__main__":
     parser.add_argument('--mode', type=str, choices=['gen_only', 'eval_only', 'all'], required=True)
     parser.add_argument('--domain', type=str, default='math')
     parser.add_argument('--tp', type=int, default=2)
-    parser.add_argument('--output_dir', type=str, default='experiments/verbalization')
+    parser.add_argument('--output_dir', type=str, default='/export/fs06/hwang302/CARDS/exp_verbalization')
     parser.add_argument('--judge_model', type=str, default='meta-llama/Llama-3.3-70B-Instruct')
-    parser.add_argument('--judge_base_url', type=str, default=None)
+    parser.add_argument('--judge_base_url', type=str, default='http://e02:8000/v1')
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--test_samples', type=int, default=2)
     args = parser.parse_args()
@@ -311,26 +322,3 @@ if __name__ == "__main__":
     
     if args.mode in ['eval_only', 'all']:
         run_evaluation(args)
-
-# MODELS = [
-#     # --- SMALL/MEDIUM SCALE (~1.5B - 3B) ---
-#     'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
-#     'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
-    
-#     # --- OLMo-3 FAMILY (7B) ---
-#     'allenai/OLMo-3-7B',             # Base
-#     'allenai/Olmo-3-7B-Think-SFT',
-#     'allenai/Olmo-3-7B-Think-DPO',
-#     'allenai/Olmo-3-7B-Think',
-#     'allenai/Olmo-3-7B-Instruct-SFT',
-#     'allenai/Olmo-3-7B-Instruct-DPO',
-#     'allenai/Olmo-3-7B-Instruct',
-    
-#     # --- MEDIUM/LARGE SCALE (~7B - 8B) ---
-#     'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
-#     'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
-    
-#     # --- LARGE SCALE (14B - 32B) ---
-#     'allenai/Olmo-3.1-32B-Think', 
-#     'allenai/Olmo-3.1-32B-Instruct',      # High-end open reasoning model
-# ]

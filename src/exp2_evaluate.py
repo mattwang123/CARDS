@@ -8,14 +8,15 @@ Evaluate the Chain-of-Thought (CoT) responses generated in Stage A and correlate
 them with the temporal logic traces extracted in Stage B. 
 
 PIPELINE ARCHITECTURE:
-1. Data Merging: Loads Ground Truth, CoT Generations, and Temporal Traces.
-2. Regex Extraction: Naively extracts the \\boxed{} content (NO evaluation).
-3. LLM Judging: A 70B judge determines if the extracted text is mathematically
+1. Instant Resume: Checks for completion before executing heavy I/O JSON loads.
+2. Data Merging: Loads Ground Truth, CoT Generations, and Temporal Traces.
+3. Regex Extraction: Naively extracts the \\boxed{} content (NO evaluation).
+4. LLM Judging: A 70B judge determines if the extracted text is mathematically
    equivalent to the ground truth (if Sufficient) or correctly states the 
    missing info (if Insufficient).
-4. Trace Analytics: Computes 12+ temporal metrics (mean, max, end_prob, 
+5. Trace Analytics: Computes 12+ temporal metrics (mean, max, end_prob, 
    collapse_delta, etc.) for mechanistic interpretation.
-5. Checkpointing: Saves progress aggressively to avoid losing LLM API calls.
+6. Checkpointing: Saves progress aggressively to avoid losing LLM API calls.
 ================================================================================
 """
 
@@ -42,16 +43,29 @@ DATASETS = {
 }
 
 MODELS = [
-    # --- SMALL/MEDIUM SCALE (~1.5B - 3B) ---
+    # --- SMALL/MEDIUM SCALE (~1.5B - 4B) ---
     'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
     'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    'google/gemma-3-4b-it',
     
-    # --- MEDIUM/LARGE SCALE (~7B - 8B) ---
+    # --- MEDIUM/LARGE SCALE (~7B - 9B) ---
     'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
     'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    'google/gemma-3-12b-it',
+    'allenai/Olmo-3-7B-Think',
+    'allenai/Olmo-3-7B-Instruct',
+    'deepseek-ai/deepseek-math-7b-instruct',
     
-    # --- LARGE SCALE (14B+) ---
+    # --- LARGE SCALE (14B - 32B) ---
     'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+    'google/gemma-3-27b-it',
+    'allenai/Olmo-3-32B-Think',
+    'openai/gpt-oss-20b',
+    'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+    
+    # --- MASSIVE SCALE (70B+) ---
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+    'Qwen/Qwen2.5-72B-Instruct'
 ]
 
 def extract_regex_naive(text):
@@ -219,6 +233,11 @@ def run_evaluation(args):
             final_file = eval_model_dir / f"{ds_name}_evaluated_traces.json"
             ckpt_file = eval_model_dir / f"{ds_name}_eval_checkpoint.json"
             
+            # --- ULTIMATE RESUME: Check completion BEFORE heavy I/O ---
+            if final_file.exists() and not args.test:
+                print(f"  - [RESUME HIT] Skipping {model_slug}/{ds_name}, evaluation already complete.")
+                continue
+
             if not cot_file.exists():
                 print(f"  ! Missing CoT generations for {model_slug}/{ds_name} at {cot_file}")
                 continue
@@ -245,10 +264,6 @@ def run_evaluation(args):
                         traces = {str(item.get('question_idx', item.get('id', i))): item.get('trace', []) for i, item in enumerate(trace_data)}
             else:
                 print(f"  ~ Warning: Traces file missing for {model_slug}/{ds_name}. Temporal metrics will be null.")
-
-            if final_file.exists() and not args.test:
-                print(f"  - Skipping {model_slug}/{ds_name}, evaluation already complete.")
-                continue
 
             results = []
             start_idx = 0
@@ -362,10 +377,12 @@ def run_evaluation(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--domain', type=str, default='math')
-    parser.add_argument('--generation_dir', type=str, default='experiments/dynamic_tracking')
-    parser.add_argument('--output_dir', type=str, default='experiments/dynamic_tracking_evaluation')
+    # Note: Using the directory you provided in the code, but remember if you saved
+    # test generations in 'experiments/dynamic_tracking_test', pass that flag!
+    parser.add_argument('--generation_dir', type=str, default='experiments/dynamic_tracking_test')
+    parser.add_argument('--output_dir', type=str, default='experiments/dynamic_tracking_test_evaluation')
     parser.add_argument('--judge_model', type=str, default='meta-llama/Llama-3.3-70B-Instruct')
-    parser.add_argument('--judge_base_url', type=str, default='http://e02:8000/v1')
+    parser.add_argument('--judge_base_url', type=str, default='http://e03:8000/v1')
     parser.add_argument('--keep_cot', action='store_true', help="Retain full CoT text in output JSON")
     parser.add_argument('--test', action='store_true')
     parser.add_argument('--test_samples', type=int, default=5)

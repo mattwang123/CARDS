@@ -2,45 +2,82 @@
 ================================================================================
 EXPERIMENT 4: Quadrant Dynamics & Compute Waste
 ================================================================================
-Leverages cached embeddings to track Signal Death per Epistemic Quadrant.
-- Calculates exact Token Compute Waste for Q1 (Hallucinations).
-- Tracks Mean Latent Probability of Insufficiency over time across all 4 
-  quadrants to prove that Signal Maintenance correlates with behavioral safety, 
-  while Signal Death causes hallucination.
+Leverages frozen, pre-trained probes from Exp 3 to track Signal Death per Epistemic Quadrant.
+- Calculates exact Token Compute Waste for Q1 (Hallucinations) on the Test Set.
+- Loads the optimal semantic probe (.joblib) trained on the isolated Train Set.
+- Tracks Mean Latent Probability of Insufficiency over time across the 4 
+  behavioral quadrants on the completely unseen Test Set.
+================================================================================
 """
 
 import json
 import os
 import numpy as np
 import argparse
-from tqdm import tqdm
+import joblib
 from transformers import AutoTokenizer
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import f1_score
 
+# MODELS = [
+#     'Qwen/Qwen2.5-Math-1.5B-Instruct',
+#     'Qwen/Qwen2.5-Math-7B-Instruct',
+#     'meta-llama/Meta-Llama-3.1-8B-Instruct',
+#     'Qwen/Qwen2.5-14B-Instruct'
+# ]
+
+# MODELS = [
+#     # --- SMALL/MEDIUM SCALE (~1.5B - 3B) ---
+#     'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+#     'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    
+#     # --- MEDIUM/LARGE SCALE (~7B - 8B) ---
+#     'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
+#     'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    
+#     # --- LARGE SCALE (14B+) ---
+#     'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+# ]
 
 MODELS = [
-    'Qwen/Qwen2.5-Math-1.5B-Instruct',
-    'Qwen/Qwen2.5-Math-7B-Instruct',
-    'meta-llama/Meta-Llama-3.1-8B-Instruct',
-    'Qwen/Qwen2.5-14B-Instruct'
+    # --- SMALL/MEDIUM SCALE (~1.5B - 4B) ---
+    'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+    'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    'google/gemma-3-4b-it',
+    
+    # --- MEDIUM/LARGE SCALE (~7B - 9B) ---
+    'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
+    'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    'google/gemma-3-12b-it',
+    'allenai/Olmo-3-7B-Think',
+    'allenai/Olmo-3-7B-Instruct',
+    'deepseek-ai/deepseek-math-7b-instruct',
+    
+    # --- LARGE SCALE (14B - 32B) ---
+    'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+    'google/gemma-3-27b-it',
+    'allenai/Olmo-3-32B-Think',
+    'openai/gpt-oss-20b',
+    'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+    
+    # --- MASSIVE SCALE (70B+) ---
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+    'Qwen/Qwen2.5-72B-Instruct'
 ]
 
-TIMESTEPS = [0, 5, 10, 20, 50, 100, 200]
-BASE_DIR = 'exp_temporal'
+TIMESTEPS = [0, 2, 4, 8, 16, 32, 64, 128, 256]
+
+EXPORT_BASE = '/export/fs06/hwang302/CARDS'
+BASE_DIR = os.path.join(EXPORT_BASE, 'exp_temporal_new')
 
 def load_evaluated_data(model_name, dataset):
-    """Loads the quadrants and text from Exp 2 Evaluated Traces."""
+    """Loads the quadrants and text from Exp 2 Evaluated Traces (Test Set)."""
     model_slug = model_name.split('/')[-1]
-    path = f"experiments/dynamic_tracking_evaluation/{dataset}/{model_slug}/{dataset}_evaluated_traces.json"
     
-    # Fallback to math domain path if structured that way
+    # Check test-specific path
+    path = f"experiments/dynamic_tracking_test_evaluation/math/{model_slug}/{dataset}_evaluated_traces.json"
+    
     if not os.path.exists(path):
-        path = f"experiments/dynamic_tracking_evaluation/math/{model_slug}/{dataset}_evaluated_traces.json"
-        
-    if not os.path.exists(path):
-        print(f"Warning: Evaluated traces not found at {path}")
+        print(f"Warning: Evaluated test traces not found at {path}")
         return None, None, None, None
         
     with open(path, 'r') as f:
@@ -56,7 +93,6 @@ def load_evaluated_data(model_name, dataset):
         quadrants.append(item['epistemic_quadrant'])
         
         # We need the text to calculate token waste. 
-        # Fallback to extracted text if full cot was dropped to save space.
         texts.append(item.get('full_cot_text', item.get('extracted_raw_text', '')))
         
     return data, np.array(labels), np.array(quadrants), texts
@@ -88,60 +124,78 @@ def main():
 
     print(f"=== Running Quadrant Dynamics for {args.dataset.upper()} ===\n")
     
+    # Path to Exp 3 master results to find the best layer
+    results_dir = os.path.join(BASE_DIR, 'results')
+    master_results_path = os.path.join(results_dir, f"final_momentum_{args.dataset}.json")
+    
+    if not os.path.exists(master_results_path):
+        print(f"Error: Run Exp 3 first. Missing {master_results_path}")
+        return
+        
+    with open(master_results_path, 'r') as f:
+        master_results = json.load(f)
+    
     for model_name in MODELS:
         model_slug = model_name.split('/')[-1]
         print(f"{'='*80}\nMODEL: {model_name}\n{'='*80}")
         
+        # 1. Load the Test Set behavioral data
         data, labels, quadrants, texts = load_evaluated_data(model_name, args.dataset)
         if data is None: continue
             
-        # 1. Compute Waste Analysis
+        # 2. Compute Waste Analysis
         print("[1] Compute Waste Analysis")
         calculate_compute_waste(model_name, quadrants, texts)
         
-        # 2. Quadrant-Specific Temporal Tracking (Probability)
+        # 3. Quadrant-Specific Temporal Tracking
         print("\n[2] Quadrant-Specific Temporal Tracking (Mean Probability over Time)")
-        model_emb_dir = os.path.join(BASE_DIR, 'embeddings', model_slug)
         
+        # CRITICAL FIX: Inject args.dataset so it looks in the correct separated folder!
+        model_emb_dir = os.path.join(BASE_DIR, 'embeddings', args.dataset, model_slug)
+        probes_dir = os.path.join(BASE_DIR, 'probes', args.dataset, model_slug)
+        
+        if model_name not in master_results:
+            print(f"   -> Missing Exp 3 tracking data for {model_name}. Skipping.")
+            continue
+            
         for t in TIMESTEPS:
-            emb_path = os.path.join(model_emb_dir, f"t_{t}.npy")
-            if not os.path.exists(emb_path):
+            # A. Load the Test Set hidden states for this timestep
+            emb_path_test = os.path.join(model_emb_dir, f"t_{t}_test.npy")
+            if not os.path.exists(emb_path_test):
                 continue
                 
-            X_all = np.load(emb_path)
-            num_layers = X_all.shape[1]
+            X_test_all = np.load(emb_path_test)
             
-            best_f1 = 0.0
-            best_layer = -1
-            best_probe = None
-            
-            # Step A: Find the best general layer for this timestep (using full dataset)
-            # We stratify by quadrant to ensure perfectly balanced train/test splits
-            X_train, X_test, y_train, y_test, q_train, q_test = train_test_split(
-                X_all, labels, quadrants, test_size=0.3, random_state=42, stratify=quadrants
-            )
-            
-            for layer_idx in range(num_layers):
-                probe = LogisticRegression(max_iter=1000, class_weight='balanced', C=1.0, solver='liblinear')
-                probe.fit(X_train[:, layer_idx, :], y_train)
+            # B. Identify the best layer and load the frozen probe from Exp 3
+            try:
+                best_layer = master_results[model_name][f"t_{t}"]["best_layer"]
+            except KeyError:
+                continue
                 
-                # Standard F1 to pick the best semantic layer
-                test_f1 = f1_score(y_test, probe.predict(X_test[:, layer_idx, :]))
+            probe_path = os.path.join(probes_dir, f"best_probe_t{t}_layer{best_layer}.joblib")
+            if not os.path.exists(probe_path):
+                print(f"   -> Probe missing at {probe_path}")
+                continue
                 
-                if test_f1 > best_f1:
-                    best_f1 = test_f1
-                    best_layer = layer_idx
-                    best_probe = probe
-                    
-            # Step B: Evaluate the best probe's PROBABILITY on specific quadrants
-            # probe.predict_proba returns [prob_0, prob_1]. We want prob_1 (Insufficiency)
-            probs = best_probe.predict_proba(X_test[:, best_layer, :])[:, 1]
+            probe = joblib.load(probe_path)
             
-            # Create masks for all 4 quadrants
-            q1_mask = (q_test == 'Q1_Hallucination')
-            q2_mask = (q_test == 'Q2_Correct_Rejection')
-            q3_mask = (q_test == 'Q3_Solved_Correctly')
-            q4_mask = (q_test == 'Q4_Competence_Failure')
+            # Isolate the exact layer we are testing
+            X_test_layer = X_test_all[:, best_layer, :]
+            
+            # Ensure indices align (X_test length should match quadrants length)
+            if len(X_test_layer) != len(quadrants):
+                print(f"   -> Data mismatch! Embeddings: {len(X_test_layer)}, Quadrants: {len(quadrants)}")
+                break
+            
+            # C. Evaluate the frozen probe's PROBABILITY
+            # predict_proba returns [prob_class_0, prob_class_1]. We want prob_class_1 (Insufficiency)
+            probs = probe.predict_proba(X_test_layer)[:, 1]
+            
+            # D. Map probabilities to their behavioral quadrants
+            q1_mask = (quadrants == 'Q1_Hallucination')
+            q2_mask = (quadrants == 'Q2_Correct_Rejection')
+            q3_mask = (quadrants == 'Q3_Solved_Correctly')
+            q4_mask = (quadrants == 'Q4_Competence_Failure')
             
             def get_mean_prob(mask):
                 return np.mean(probs[mask]) if np.sum(mask) > 0 else 0.0
@@ -151,7 +205,7 @@ def main():
             p_q3 = get_mean_prob(q3_mask)
             p_q4 = get_mean_prob(q4_mask)
             
-            print(f"   t={t:<3} | Q1(Fail): {p_q1:.3f} | Q2(Safe): {p_q2:.3f} | Q3(Solve): {p_q3:.3f} | Q4(MathErr): {p_q4:.3f}")
+            print(f"   t={t:<3} | Best Layer: {best_layer:<2} | Q1(Fail): {p_q1:.3f} | Q2(Safe): {p_q2:.3f} | Q3(Solve): {p_q3:.3f} | Q4(MathErr): {p_q4:.3f}")
 
 if __name__ == '__main__':
     main()

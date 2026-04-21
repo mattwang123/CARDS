@@ -37,17 +37,43 @@ DATASETS = {
     }
 }
 
+# MODELS = [
+#     # --- SMALL/MEDIUM SCALE (~1.5B - 3B) ---
+#     'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+#     'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    
+#     # --- MEDIUM/LARGE SCALE (~7B - 8B) ---
+#     'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
+#     'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    
+#     # --- LARGE SCALE (14B+) ---
+#     'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+# ]
+
 MODELS = [
-    # --- SMALL/MEDIUM SCALE (~1.5B - 3B) ---
+    # --- SMALL/MEDIUM SCALE (~1.5B - 4B) ---
     'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
     'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    'google/gemma-3-4b-it',
     
-    # --- MEDIUM/LARGE SCALE (~7B - 8B) ---
+    # --- MEDIUM/LARGE SCALE (~7B - 9B) ---
     'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
     'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    'google/gemma-3-12b-it',
+    'allenai/Olmo-3-7B-Think',
+    'allenai/Olmo-3-7B-Instruct',
+    'deepseek-ai/deepseek-math-7b-instruct',
     
-    # --- LARGE SCALE (14B+) ---
+    # --- LARGE SCALE (14B - 32B) ---
     'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+    'google/gemma-3-27b-it',
+    'allenai/Olmo-3-32B-Think',
+    'openai/gpt-oss-20b',
+    'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+    
+    # --- MASSIVE SCALE (70B+) ---
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+    'Qwen/Qwen2.5-72B-Instruct'
 ]
 
 def format_cot_prompt(question, model_name):
@@ -121,7 +147,7 @@ def run_cot_generation(args):
         print(f"  - Loading {model_name}...")
         try:
             # Note: max_model_len restricted to save KV cache memory as seen in previous logs
-            llm = LLM(model=model_name, tensor_parallel_size=args.tp, trust_remote_code=True, max_model_len=8192)
+            llm = LLM(model=model_name, tensor_parallel_size=args.tp, trust_remote_code=True, max_model_len=4096)
         except Exception as e:
             print(f"    ! Failed to load {model_name}: {e}")
             continue
