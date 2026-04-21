@@ -73,8 +73,8 @@ EXPORT_BASE = '/export/fs06/hwang302/CARDS'
 BASE_OUT_DIR = os.path.join(EXPORT_BASE, 'exp_temporal_new')
 
 # Input directories (can stay in home or also move to export)
-TRAIN_DIR = 'experiments/dynamic_tracking_train'
-TEST_DIR = 'experiments/dynamic_tracking_test'
+TRAIN_DIR = os.path.join(EXPORT_BASE, 'experiments/dynamic_tracking_train')
+TEST_DIR = os.path.join(EXPORT_BASE, 'experiments/dynamic_tracking_test')
 
 def load_exp2_data(model_name, dataset, split_dir):
     """Loads the pre-generated CoT from Exp 2 based on the requested split."""
