@@ -36,13 +36,69 @@ plt.rcParams.update({
 
 # --- CONFIGURATION ---
 MODELS = [
-    'Qwen/Qwen2.5-72B-Instruct',  # Can change to any flagship model you ran
-    'Qwen/Qwen2.5-Math-7B'
+    # --- SMALL/MEDIUM SCALE (~1.5B - 4B) ---
+    'Qwen/Qwen2.5-Math-1.5B', 'Qwen/Qwen2.5-Math-1.5B-Instruct',
+    'Qwen/Qwen2.5-3B', 'Qwen/Qwen2.5-3B-Instruct',
+    'google/gemma-3-4b-it',
+
+    # --- MEDIUM/LARGE SCALE (~7B - 9B) ---
+    'Qwen/Qwen2.5-Math-7B', 'Qwen/Qwen2.5-Math-7B-Instruct',
+    'meta-llama/Meta-Llama-3.1-8B', 'meta-llama/Meta-Llama-3.1-8B-Instruct',
+    'google/gemma-3-12b-it',
+    'allenai/Olmo-3-7B-Think',
+    'allenai/Olmo-3-7B-Instruct',
+    'deepseek-ai/deepseek-math-7b-instruct',
+
+    # --- LARGE SCALE (14B - 32B) ---
+    'Qwen/Qwen2.5-14B', 'Qwen/Qwen2.5-14B-Instruct',
+    'google/gemma-3-27b-it',
+    'allenai/Olmo-3-32B-Think',
+    'openai/gpt-oss-20b',
+    'deepseek-ai/DeepSeek-R1-Distill-Qwen-32B',
+
+    # --- MASSIVE SCALE (70B+) ---
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B',
+    'Qwen/Qwen2.5-72B-Instruct'
 ]
 DATASET = 'umwp'
 EXPORT_BASE = '/export/fs06/hwang302/CARDS'
 BASE_DIR = os.path.join(EXPORT_BASE, 'exp_temporal_new')
 TIMESTEPS = [0, 2, 4, 8, 16, 32, 64, 128, 256]
+QUADRANT_STYLES = {
+    'Q1_Hallucination': {
+        'color': '#d62728',
+        'title': 'Epistemic Wandering and Awakening in Hallucinations (Q1)'
+    },
+    'Q2_Correct_Rejection': {
+        'color': '#2ca02c',
+        'title': 'Epistemic Dynamics in Correct Rejections (Q2)'
+    },
+    'Q3_True_Positive': {
+        'color': '#1f77b4',
+        'title': 'Epistemic Dynamics in True Positives (Q3)'
+    },
+    'Q4_True_Negative': {
+        'color': '#9467bd',
+        'title': 'Epistemic Dynamics in True Negatives (Q4)'
+    },
+}
+
+def get_available_model_slugs(dataset):
+    """
+    Discover available model slugs from embedding folder names.
+    Prefer EXPORT_BASE, but also support local in-repo experiment_result path.
+    """
+    candidates = [
+        os.path.join(BASE_DIR, 'embeddings', dataset),
+        os.path.join('experiment_result', 'exp_temporal_new', 'embeddings', dataset),
+    ]
+    for emb_dir in candidates:
+        if os.path.isdir(emb_dir):
+            return sorted(
+                d for d in os.listdir(emb_dir)
+                if os.path.isdir(os.path.join(emb_dir, d))
+            )
+    return []
 
 def run_relative_scatter():
     os.makedirs('paper_plots/exp7_awakening', exist_ok=True)
@@ -55,7 +111,18 @@ def run_relative_scatter():
     with open(exp5_path, 'r') as f:
         exp5_data = json.load(f)
 
-    for model_name in MODELS:
+    available_slugs = set(get_available_model_slugs(DATASET))
+    if available_slugs:
+        models_to_run = [m for m in MODELS if m.split('/')[-1] in available_slugs]
+        skipped = [m for m in MODELS if m.split('/')[-1] not in available_slugs]
+        print(f"Found {len(available_slugs)} embedding model folders for dataset '{DATASET}'.")
+        if skipped:
+            print(f"Skipping {len(skipped)} models not present as embedding folders.")
+    else:
+        print(f"Could not find embedding folders for dataset '{DATASET}'. Using MODELS as-is.")
+        models_to_run = MODELS
+
+    for model_name in models_to_run:
         model_slug = model_name.split('/')[-1]
         print(f"\nProcessing {model_slug}...")
 
@@ -130,65 +197,84 @@ def run_relative_scatter():
 
         df = pd.DataFrame(records)
         
-        # 4. PLOTTING: Focus on Q1 (Hallucinations) to show the Tragic Trap
-        # You can change to 'Q2_Correct_Rejection' to see the difference
-        df_q1 = df[df['Quadrant'] == 'Q1_Hallucination'].copy()
-        
-        if df_q1.empty: continue
+        # 4. PLOTTING: Generate one plot per quadrant (Q1-Q4)
+        for quadrant, style in QUADRANT_STYLES.items():
+            df_q = df[df['Quadrant'] == quadrant].copy()
+            if df_q.empty:
+                continue
 
-        fig, ax = plt.subplots(figsize=(9, 6))
+            fig, ax = plt.subplots(figsize=(9, 6))
 
-        # A. The Scatter Plot (Jittered slightly on X-axis to see density)
-        sns.scatterplot(
-            data=df_q1, 
-            x='Proportion', 
-            y='Probability', 
-            alpha=0.15,       # High transparency to show density
-            color='#d62728',  # Red for Q1 Hallucination
-            edgecolor=None,
-            s=20,
-            ax=ax
-        )
+            # A. Scatter points
+            sns.scatterplot(
+                data=df_q,
+                x='Proportion',
+                y='Probability',
+                alpha=0.15,
+                color=style['color'],
+                edgecolor=None,
+                s=20,
+                ax=ax
+            )
 
-        # B. The Binned Trend Line (The Awakening Curve)
-        # Create 10 bins across the proportion [0, 1]
-        df_q1['Bin'] = pd.cut(df_q1['Proportion'], bins=np.linspace(0, 1.01, 15), right=False)
-        # Get the mean proportion and probability for each bin
-        bin_means = df_q1.groupby('Bin').mean(numeric_only=True).dropna()
+            # B. Binned trend line
+            df_q['Bin'] = pd.cut(df_q['Proportion'], bins=np.linspace(0, 1.01, 15), right=False)
+            bin_means = df_q.groupby('Bin').mean(numeric_only=True).dropna()
 
-        ax.plot(
-            bin_means['Proportion'], 
-            bin_means['Probability'], 
-            color='#000000', 
-            linewidth=3.5, 
-            marker='D',
-            markersize=8,
-            zorder=10,
-            label='Average Trend (Awakening Curve)'
-        )
+            ax.plot(
+                bin_means['Proportion'],
+                bin_means['Probability'],
+                color='#000000',
+                linewidth=3.5,
+                marker='D',
+                markersize=8,
+                zorder=10,
+                label='Average Trend (Awakening Curve)'
+            )
 
-        ax.set_xlim(-0.02, 1.05)
-        ax.set_ylim(-0.05, 1.05)
-        
-        # Formatting X-axis to percentages
-        ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
-        ax.set_xticklabels(['0% (Start)', '25%', '50%', '75%', '100% (EOS)'])
-        
-        ax.set_xlabel('Reasoning Progression (Relative to Total CoT Length)')
-        ax.set_ylabel('Latent Probability of "Insufficient"')
-        ax.set_title(f'Epistemic Wandering and Awakening in Hallucinations (Q1)\nModel: {model_slug}', pad=15)
-        
-        # Add a decision boundary line
-        ax.axhline(0.5, color='gray', linestyle='dashed', alpha=0.5, zorder=1)
-        ax.text(0.02, 0.52, 'Decision Boundary', color='gray', fontsize=10)
+            # C. Faint cumulative count curve on right-side y-axis
+            cdf_x = np.sort(df_q['Proportion'].to_numpy())
+            cdf_y = np.arange(1, len(cdf_x) + 1)
+            ax2 = ax.twinx()
+            ax2.plot(
+                cdf_x,
+                cdf_y,
+                color='#1f77b4',
+                linewidth=2.0,
+                alpha=0.35,
+                linestyle='-',
+                zorder=5,
+                label='Cumulative Count (points left of x)'
+            )
+            ax2.set_ylabel('Cumulative Number of Points', color='#1f77b4')
+            ax2.tick_params(axis='y', colors='#1f77b4')
+            ax2.set_ylim(0, len(cdf_x) * 1.02)
 
-        ax.legend(frameon=False, loc='lower center')
-        
-        plt.tight_layout()
-        out_path = f"paper_plots/exp7_awakening/Fig_Scatter_Q1_{model_slug.replace('/', '_')}.pdf"
-        plt.savefig(out_path, format='pdf', bbox_inches='tight')
-        plt.close()
-        print(f"Saved plot to {out_path}")
+            ax.set_xlim(-0.02, 1.05)
+            ax.set_ylim(-0.05, 1.05)
+
+            # Formatting X-axis to percentages
+            ax.set_xticks([0, 0.25, 0.5, 0.75, 1.0])
+            ax.set_xticklabels(['0% (Start)', '25%', '50%', '75%', '100% (EOS)'])
+
+            ax.set_xlabel('Reasoning Progression (Relative to Total CoT Length)')
+            ax.set_ylabel('Latent Probability of "Insufficient"')
+            ax.set_title(f"{style['title']}\nModel: {model_slug}", pad=15)
+
+            # Add a decision boundary line
+            ax.axhline(0.5, color='gray', linestyle='dashed', alpha=0.5, zorder=1)
+            ax.text(0.02, 0.52, 'Decision Boundary', color='gray', fontsize=10)
+
+            lines_1, labels_1 = ax.get_legend_handles_labels()
+            lines_2, labels_2 = ax2.get_legend_handles_labels()
+            ax.legend(lines_1 + lines_2, labels_1 + labels_2, frameon=False, loc='lower center')
+
+            plt.tight_layout()
+            quadrant_short = quadrant.split('_')[0]
+            out_path = f"paper_plots/exp7_awakening/Fig_Scatter_{quadrant_short}_{model_slug.replace('/', '_')}.pdf"
+            plt.savefig(out_path, format='pdf', bbox_inches='tight')
+            plt.close()
+            print(f"Saved plot to {out_path}")
 
 if __name__ == '__main__':
     run_relative_scatter()
