@@ -134,7 +134,7 @@ def train_unified_probe(model_slug, dataset, train_labels, model_emb_dir, model_
         
         probe = make_pipeline(
             StandardScaler(),
-            LogisticRegression(max_iter=1000, class_weight='balanced', C=1.0, solver='lbfgs', n_jobs=-1)
+            LogisticRegression(max_iter=500, class_weight='balanced', C=1.0, solver='lbfgs', n_jobs=-1)
         )
         probe.fit(X_layer, y_train_unified)
         
