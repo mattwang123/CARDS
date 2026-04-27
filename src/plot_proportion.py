@@ -17,6 +17,12 @@ import joblib
 from transformers import AutoTokenizer
 from tqdm import tqdm
 
+# ANSI colors for terminal debug readability
+COLOR_RESET = "\033[0m"
+COLOR_HEADER = "\033[95m"
+COLOR_META = "\033[93m"
+COLOR_COT = "\033[96m"
+
 # =============================================================================
 # NATURE-STYLE PLOT CONFIGURATION
 # =============================================================================
@@ -137,10 +143,24 @@ def run_relative_scatter():
             
         unified_probe = joblib.load(probe_path)
 
-        # 1. Load Traces to calculate exact CoT token lengths
-        eval_path = os.path.join(EXPORT_BASE, f"experiments/dynamic_tracking_test_evaluation/math/{model_slug}/{DATASET}_evaluated_traces.json")
+        # 1. Load evaluated traces for quadrant labels
+        eval_path = os.path.join(
+            EXPORT_BASE,
+            f"experiments/dynamic_tracking_test_evaluation/math/{model_slug}/{DATASET}_evaluated_traces.json"
+        )
         with open(eval_path, 'r') as f:
             eval_data = json.load(f).get("data", [])
+
+        # 2. Load original generation traces for CoT length (must match embedding provenance)
+        gen_path = os.path.join(
+            EXPORT_BASE,
+            f"experiments/dynamic_tracking_test/math/{model_slug}/{DATASET}_cot_generations.json"
+        )
+        if not os.path.exists(gen_path):
+            print(f"Missing generation trace file: {gen_path}")
+            continue
+        with open(gen_path, 'r') as f:
+            gen_data = json.load(f)
 
         # Load tokenizer to calculate actual generation length
         try:
@@ -151,20 +171,36 @@ def run_relative_scatter():
 
         lengths = []
         quadrants = []
-        
-        print("Calculating CoT lengths...")
-        for item in tqdm(eval_data):
-            text = item.get('full_cot_text', item.get('extracted_raw_text', ''))
-            # Approximate or exact token count of the generated reasoning
-            lengths.append(len(tokenizer.encode(text)))
-            quadrants.append(item['epistemic_quadrant'])
+
+        if len(gen_data) != len(eval_data):
+            print(f"Length mismatch: gen={len(gen_data)} vs eval={len(eval_data)}; skipping model.")
+            continue
+
+        print("Calculating CoT lengths from generated_response...")
+        for i in tqdm(range(len(gen_data)), desc=f"Lengths ({model_slug})", leave=False):
+            gen_item = gen_data[i]
+            eval_item = eval_data[i]
+            text = gen_item.get('generated_response', '')
+            lengths.append(len(tokenizer.encode(text, add_special_tokens=False)))
+            quadrants.append(eval_item['epistemic_quadrant'])
             
         lengths = np.array(lengths)
         quadrants = np.array(quadrants)
 
+        # Debug: show concrete examples from the exact CoT text used for normalization.
+        print(f"{COLOR_HEADER}Sample CoT examples used for length normalization:{COLOR_RESET}")
+        sample_indices = [0, len(gen_data) // 2, len(gen_data) - 1]
+        for idx in sample_indices:
+            text = gen_data[idx].get('generated_response', '')
+            print(
+                f"{COLOR_META}  idx={idx:<4} len={lengths[idx]:<4} "
+                f"quadrant={quadrants[idx]}{COLOR_RESET}"
+            )
+            print(f"{COLOR_COT}  full_cot={text!r}{COLOR_RESET}")
+
         records = []
 
-        # 2. Extract Active Probabilities for fixed timesteps
+        # 3. Extract Active Probabilities for fixed timesteps
         print("Mapping temporal embeddings to relative proportions...")
         for t in TIMESTEPS:
             emb_path = os.path.join(BASE_DIR, 'embeddings', DATASET, model_slug, f"t_{t}_test.npy")
@@ -179,11 +215,13 @@ def run_relative_scatter():
                     proportion = t / lengths[i]
                     records.append({
                         'Proportion': proportion,
+                        'Timestep': t,
                         'Probability': probs_t[i],
-                        'Quadrant': quadrants[i]
+                        'Quadrant': quadrants[i],
+                        'IsEOS': False
                     })
 
-        # 3. Extract EOS Probabilities (Proportion = 1.0)
+        # 4. Extract EOS Probabilities (Proportion = 1.0)
         eos_path = os.path.join(BASE_DIR, 'embeddings', DATASET, model_slug, "t_eos_test.npy")
         if os.path.exists(eos_path):
             X_eos = np.load(eos_path)[:, unified_layer, :]
@@ -191,8 +229,10 @@ def run_relative_scatter():
             for i in range(len(lengths)):
                 records.append({
                     'Proportion': 1.0,
+                    'Timestep': np.nan,
                     'Probability': probs_eos[i],
-                    'Quadrant': quadrants[i]
+                    'Quadrant': quadrants[i],
+                    'IsEOS': True
                 })
 
         df = pd.DataFrame(records)
@@ -275,6 +315,62 @@ def run_relative_scatter():
             plt.savefig(out_path, format='pdf', bbox_inches='tight')
             plt.close()
             print(f"Saved plot to {out_path}")
+
+            # 5. Absolute-timestep view (exclude EOS), with mean evaluated at each timestep.
+            df_q_abs = df_q[df_q['IsEOS'] == False].copy()
+            if df_q_abs.empty:
+                continue
+
+            fig_abs, ax_abs = plt.subplots(figsize=(9, 6))
+
+            sns.scatterplot(
+                data=df_q_abs,
+                x='Timestep',
+                y='Probability',
+                alpha=0.15,
+                color=style['color'],
+                edgecolor=None,
+                s=20,
+                ax=ax_abs
+            )
+
+            timestep_means = (
+                df_q_abs.groupby('Timestep', as_index=False)['Probability']
+                .mean()
+                .sort_values('Timestep')
+            )
+            ax_abs.plot(
+                timestep_means['Timestep'],
+                timestep_means['Probability'],
+                color='#000000',
+                linewidth=3.5,
+                marker='D',
+                markersize=8,
+                zorder=10,
+                label='Average at each timestep'
+            )
+
+            ax_abs.set_xlim(min(TIMESTEPS) - 2, max(TIMESTEPS) + 8)
+            ax_abs.set_ylim(-0.05, 1.05)
+            ax_abs.set_xticks(TIMESTEPS)
+            ax_abs.set_xlabel('Reasoning Progression (Absolute Timestep)')
+            ax_abs.set_ylabel('Latent Probability of "Insufficient"')
+            ax_abs.set_title(
+                f"{style['title']} (Absolute Timesteps, EOS Removed)\nModel: {model_slug}",
+                pad=15
+            )
+            ax_abs.axhline(0.5, color='gray', linestyle='dashed', alpha=0.5, zorder=1)
+            ax_abs.text(min(TIMESTEPS) + 2, 0.52, 'Decision Boundary', color='gray', fontsize=10)
+            ax_abs.legend(frameon=False, loc='lower center')
+
+            plt.tight_layout()
+            out_path_abs = (
+                f"paper_plots/exp7_awakening/"
+                f"Fig_Scatter_{quadrant_short}_{model_slug.replace('/', '_')}_absolute_t.pdf"
+            )
+            plt.savefig(out_path_abs, format='pdf', bbox_inches='tight')
+            plt.close()
+            print(f"Saved plot to {out_path_abs}")
 
 if __name__ == '__main__':
     run_relative_scatter()
