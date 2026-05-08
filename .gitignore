@@ -16,3 +16,5 @@ PROPOSAL_1/data/.env
 src/data/embeddings
 
 *.env
+.cursor/
+paper_plots/
