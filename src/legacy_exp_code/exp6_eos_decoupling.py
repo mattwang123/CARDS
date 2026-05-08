@@ -31,7 +31,7 @@ MODELS = [
     'deepseek-ai/DeepSeek-R1-Distill-Llama-70B', 'Qwen/Qwen2.5-72B-Instruct'
 ]
 
-DATASETS = ['umwp']#, 'treecut'
+DATASETS = ['umwp', 'treecut']
 EXPORT_BASE = '/export/fs06/hwang302/CARDS'
 BASE_DIR = os.path.join(EXPORT_BASE, 'exp_temporal_new')
 
