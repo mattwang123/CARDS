@@ -1,0 +1,116 @@
+nohup: ignoring input
+`torch_dtype` is deprecated! Use `dtype` instead!
+[Qwen2.5-Math-1.5B] loading model (2 dataset(s) to process)...
+  -> Qwen2.5-Math-1.5B/umwp  (best_layer=18, base_F1=0.857)
+  -> Qwen2.5-Math-1.5B/treecut  (best_layer=16, base_F1=0.743)
+[Qwen2.5-Math-1.5B-Instruct] nothing to do, skipping
+[Qwen2.5-3B] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:22<00:22, 22.67s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:34<00:00, 16.33s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:34<00:00, 17.28s/it]
+  -> Qwen2.5-3B/umwp  (best_layer=22, base_F1=0.811)
+  -> Qwen2.5-3B/treecut  (best_layer=28, base_F1=0.747)
+[Qwen2.5-3B-Instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [01:31<01:31, 91.98s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:56<00:00, 52.46s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:56<00:00, 58.39s/it]
+  -> Qwen2.5-3B-Instruct/umwp  (best_layer=29, base_F1=0.861)
+  -> Qwen2.5-3B-Instruct/treecut  (best_layer=22, base_F1=0.728)
+[gemma-3-4b-it] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:39<00:39, 39.97s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:12<00:00, 35.61s/it]Loading checkpoint shards: 100%|██████████| 2/2 [01:12<00:00, 36.27s/it]
+  -> gemma-3-4b-it/umwp  (best_layer=18, base_F1=0.843)
+  -> gemma-3-4b-it/treecut  (best_layer=17, base_F1=0.744)
+[Qwen2.5-Math-7B] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:51<02:35, 51.84s/it]Loading checkpoint shards:  50%|█████     | 2/4 [01:29<01:26, 43.34s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [02:06<00:40, 40.61s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:37<00:00, 36.68s/it]Loading checkpoint shards: 100%|██████████| 4/4 [02:37<00:00, 39.31s/it]
+  -> Qwen2.5-Math-7B/umwp  (best_layer=20, base_F1=0.873)
+  -> Qwen2.5-Math-7B/treecut  (best_layer=15, base_F1=0.785)
+[Qwen2.5-Math-7B-Instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:01,  1.58it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:01<00:01,  1.59it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:01<00:00,  1.56it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.62it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.60it/s]
+  -> Qwen2.5-Math-7B-Instruct/umwp  (best_layer=20, base_F1=0.887)
+  -> Qwen2.5-Math-7B-Instruct/treecut  (best_layer=16, base_F1=0.777)
+[Meta-Llama-3.1-8B] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [02:07<06:23, 127.94s/it]Loading checkpoint shards:  50%|█████     | 2/4 [03:51<03:46, 113.49s/it]Loading checkpoint shards:  75%|███████▌  | 3/4 [05:16<01:40, 100.76s/it]Loading checkpoint shards: 100%|██████████| 4/4 [05:36<00:00, 68.79s/it] Loading checkpoint shards: 100%|██████████| 4/4 [05:36<00:00, 84.18s/it]
+  -> Meta-Llama-3.1-8B/umwp  (best_layer=19, base_F1=0.746)
+  -> Meta-Llama-3.1-8B/treecut  (best_layer=9, base_F1=0.766)
+[Meta-Llama-3.1-8B-Instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/4 [00:00<?, ?it/s]Loading checkpoint shards:  25%|██▌       | 1/4 [00:00<00:02,  1.23it/s]Loading checkpoint shards:  50%|█████     | 2/4 [00:01<00:01,  1.22it/s]Loading checkpoint shards:  75%|███████▌  | 3/4 [00:02<00:00,  1.22it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.73it/s]Loading checkpoint shards: 100%|██████████| 4/4 [00:02<00:00,  1.50it/s]
+  -> Meta-Llama-3.1-8B-Instruct/umwp  (best_layer=14, base_F1=0.833)
+  -> Meta-Llama-3.1-8B-Instruct/treecut  (best_layer=15, base_F1=0.778)
+[gemma-3-12b-it] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/5 [00:00<?, ?it/s]Loading checkpoint shards:  20%|██        | 1/5 [00:00<00:03,  1.03it/s]Loading checkpoint shards:  40%|████      | 2/5 [00:01<00:02,  1.10it/s]Loading checkpoint shards:  60%|██████    | 3/5 [00:02<00:01,  1.12it/s]Loading checkpoint shards:  80%|████████  | 4/5 [00:03<00:00,  1.15it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:04<00:00,  1.19it/s]Loading checkpoint shards: 100%|██████████| 5/5 [00:04<00:00,  1.15it/s]
+  -> gemma-3-12b-it/umwp  (best_layer=26, base_F1=0.912)
+  -> gemma-3-12b-it/treecut  (best_layer=25, base_F1=0.798)
+[Olmo-3-7B-Think] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [03:26<06:52, 206.03s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [06:08<03:00, 180.40s/it]Loading checkpoint shards: 100%|██████████| 3/3 [10:02<00:00, 204.94s/it]Loading checkpoint shards: 100%|██████████| 3/3 [10:02<00:00, 200.88s/it]
+  -> Olmo-3-7B-Think/umwp  (best_layer=17, base_F1=0.883)
+  -> Olmo-3-7B-Think/treecut  (best_layer=14, base_F1=0.740)
+[Olmo-3-7B-Instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [01:40<03:21, 100.53s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [03:29<01:45, 105.77s/it]Loading checkpoint shards: 100%|██████████| 3/3 [04:37<00:00, 88.33s/it] Loading checkpoint shards: 100%|██████████| 3/3 [04:37<00:00, 92.52s/it]
+  -> Olmo-3-7B-Instruct/umwp  (best_layer=19, base_F1=0.843)
+  -> Olmo-3-7B-Instruct/treecut  (best_layer=16, base_F1=0.791)
+[deepseek-math-7b-instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [02:05<02:05, 125.05s/it]Loading checkpoint shards: 100%|██████████| 2/2 [03:19<00:00, 95.46s/it] Loading checkpoint shards: 100%|██████████| 2/2 [03:19<00:00, 99.90s/it]
+  -> deepseek-math-7b-instruct/umwp  (best_layer=18, base_F1=0.800)
+  -> deepseek-math-7b-instruct/treecut  (best_layer=18, base_F1=0.753)
+[Qwen2.5-14B] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/8 [00:00<?, ?it/s]Loading checkpoint shards:  12%|█▎        | 1/8 [00:21<02:28, 21.19s/it]Loading checkpoint shards:  25%|██▌       | 2/8 [00:49<02:31, 25.28s/it]Loading checkpoint shards:  38%|███▊      | 3/8 [01:09<01:54, 22.80s/it]Loading checkpoint shards:  50%|█████     | 4/8 [01:40<01:44, 26.00s/it]Loading checkpoint shards:  62%|██████▎   | 5/8 [02:05<01:16, 25.65s/it]Loading checkpoint shards:  75%|███████▌  | 6/8 [02:30<00:51, 25.61s/it]Loading checkpoint shards:  88%|████████▊ | 7/8 [03:12<00:31, 31.05s/it]Loading checkpoint shards: 100%|██████████| 8/8 [03:19<00:00, 23.24s/it]Loading checkpoint shards: 100%|██████████| 8/8 [03:19<00:00, 24.93s/it]
+  -> Qwen2.5-14B/umwp  (best_layer=30, base_F1=0.894)
+  -> Qwen2.5-14B/treecut  (best_layer=24, base_F1=0.773)
+[Qwen2.5-14B-Instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/8 [00:00<?, ?it/s]Loading checkpoint shards:  12%|█▎        | 1/8 [00:03<00:25,  3.61s/it]Loading checkpoint shards:  25%|██▌       | 2/8 [00:09<00:28,  4.69s/it]Loading checkpoint shards:  38%|███▊      | 3/8 [00:14<00:24,  4.98s/it]Loading checkpoint shards:  50%|█████     | 4/8 [00:20<00:21,  5.42s/it]Loading checkpoint shards:  62%|██████▎   | 5/8 [00:25<00:15,  5.14s/it]Loading checkpoint shards:  75%|███████▌  | 6/8 [00:27<00:08,  4.19s/it]Loading checkpoint shards:  88%|████████▊ | 7/8 [00:31<00:04,  4.09s/it]Loading checkpoint shards: 100%|██████████| 8/8 [00:37<00:00,  4.70s/it]Loading checkpoint shards: 100%|██████████| 8/8 [00:37<00:00,  4.67s/it]
+  -> Qwen2.5-14B-Instruct/umwp  (best_layer=30, base_F1=0.932)
+  -> Qwen2.5-14B-Instruct/treecut  (best_layer=32, base_F1=0.820)
+[gemma-3-27b-it] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/12 [00:00<?, ?it/s]Loading checkpoint shards:   8%|▊         | 1/12 [00:01<00:11,  1.04s/it]Loading checkpoint shards:  17%|█▋        | 2/12 [00:01<00:09,  1.08it/s]Loading checkpoint shards:  25%|██▌       | 3/12 [00:02<00:07,  1.17it/s]Loading checkpoint shards:  33%|███▎      | 4/12 [00:03<00:06,  1.23it/s]Loading checkpoint shards:  42%|████▏     | 5/12 [00:04<00:05,  1.24it/s]Loading checkpoint shards:  50%|█████     | 6/12 [00:05<00:04,  1.24it/s]Loading checkpoint shards:  58%|█████▊    | 7/12 [00:05<00:04,  1.24it/s]Loading checkpoint shards:  67%|██████▋   | 8/12 [00:06<00:03,  1.16it/s]Loading checkpoint shards:  75%|███████▌  | 9/12 [00:08<00:02,  1.00it/s]Loading checkpoint shards:  83%|████████▎ | 10/12 [00:09<00:01,  1.03it/s]Loading checkpoint shards:  92%|█████████▏| 11/12 [00:09<00:00,  1.03it/s]Loading checkpoint shards: 100%|██████████| 12/12 [00:10<00:00,  1.19it/s]
+`rope_scaling`'s beta_fast field must be a float, got 32
+`rope_scaling`'s beta_slow field must be a float, got 1
+  -> gemma-3-27b-it/umwp  (best_layer=34, base_F1=0.927)
+  -> gemma-3-27b-it/treecut  (best_layer=28, base_F1=0.866)
+[Olmo-3-32B-Think] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/14 [00:00<?, ?it/s]Loading checkpoint shards:   7%|▋         | 1/14 [00:28<06:12, 28.68s/it]Loading checkpoint shards:  14%|█▍        | 2/14 [00:49<04:50, 24.19s/it]Loading checkpoint shards:  21%|██▏       | 3/14 [01:07<03:55, 21.44s/it]Loading checkpoint shards:  29%|██▊       | 4/14 [01:31<03:44, 22.44s/it]Loading checkpoint shards:  36%|███▌      | 5/14 [01:50<03:10, 21.18s/it]Loading checkpoint shards:  43%|████▎     | 6/14 [02:07<02:36, 19.59s/it]Loading checkpoint shards:  50%|█████     | 7/14 [02:24<02:10, 18.67s/it]Loading checkpoint shards:  57%|█████▋    | 8/14 [02:41<01:50, 18.35s/it]Loading checkpoint shards:  64%|██████▍   | 9/14 [03:00<01:32, 18.49s/it]Loading checkpoint shards:  71%|███████▏  | 10/14 [03:21<01:16, 19.23s/it]Loading checkpoint shards:  79%|███████▊  | 11/14 [03:39<00:56, 18.97s/it]Loading checkpoint shards:  86%|████████▌ | 12/14 [03:59<00:38, 19.32s/it]Loading checkpoint shards:  93%|█████████▎| 13/14 [04:20<00:19, 19.56s/it]Loading checkpoint shards: 100%|██████████| 14/14 [04:24<00:00, 15.13s/it]Loading checkpoint shards: 100%|██████████| 14/14 [04:24<00:00, 18.92s/it]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+MXFP4 quantization requires Triton and kernels installed: CUDA requires Triton >= 3.4.0, XPU requires Triton >= 3.5.0, we will default to dequantizing the model to bf16
+Traceback (most recent call last):
+  File "/home/hwang302/.local/nlp/CARDS/src/measurement_A_sweep.py", line 435, in main
+    rows = run_one_model(m, datasets, args)
+  File "/home/hwang302/.local/nlp/CARDS/src/measurement_A_sweep.py", line 265, in run_one_model
+    model = AutoModelForCausalLM.from_pretrained(
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/models/auto/auto_factory.py", line 604, in from_pretrained
+    return model_class.from_pretrained(
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 277, in _wrapper
+    return func(*args, **kwargs)
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 4971, in from_pretrained
+    model = cls(config, *model_args, **model_kwargs)
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/models/gpt_oss/modeling_gpt_oss.py", line 613, in __init__
+    super().__init__(config)
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2076, in __init__
+    self.config._attn_implementation_internal = self._check_and_adjust_attn_implementation(
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2686, in _check_and_adjust_attn_implementation
+    applicable_attn_implementation = self.get_correct_attn_implementation(
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2725, in get_correct_attn_implementation
+    raise e
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2722, in get_correct_attn_implementation
+    self._sdpa_can_dispatch(is_init_check)
+  File "/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/transformers/modeling_utils.py", line 2574, in _sdpa_can_dispatch
+    raise ValueError(
+ValueError: GptOssForCausalLM does not support an attention implementation through torch.nn.functional.scaled_dot_product_attention yet. Please request the support for this architecture: https://github.com/huggingface/transformers/issues/28005. If you believe this error is a bug, please open an issue in Transformers GitHub repository and load your model with the argument `attn_implementation="eager"` meanwhile. Example: `model = AutoModel.from_pretrained("openai/whisper-tiny", attn_implementation="eager")`
+  -> Olmo-3-32B-Think/umwp  (best_layer=26, base_F1=0.928)
+  -> Olmo-3-32B-Think/treecut  (best_layer=20, base_F1=0.773)
+[gpt-oss-20b] loading model (2 dataset(s) to process)...
+
+[ERROR] openai/gpt-oss-20b: GptOssForCausalLM does not support an attention implementation through torch.nn.functional.scaled_dot_product_attention yet. Please request the support for this architecture: https://github.com/huggingface/transformers/issues/28005. If you believe this error is a bug, please open an issue in Transformers GitHub repository and load your model with the argument `attn_implementation="eager"` meanwhile. Example: `model = AutoModel.from_pretrained("openai/whisper-tiny", attn_implementation="eager")`
+[DeepSeek-R1-Distill-Qwen-32B] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/8 [00:00<?, ?it/s]Loading checkpoint shards:  12%|█▎        | 1/8 [00:10<01:13, 10.55s/it]Loading checkpoint shards:  25%|██▌       | 2/8 [00:27<01:26, 14.36s/it]Loading checkpoint shards:  38%|███▊      | 3/8 [00:44<01:17, 15.59s/it]Loading checkpoint shards:  50%|█████     | 4/8 [01:02<01:06, 16.65s/it]Loading checkpoint shards:  62%|██████▎   | 5/8 [01:18<00:49, 16.36s/it]Loading checkpoint shards:  75%|███████▌  | 6/8 [01:33<00:31, 15.78s/it]Loading checkpoint shards:  88%|████████▊ | 7/8 [01:49<00:15, 15.73s/it]Loading checkpoint shards: 100%|██████████| 8/8 [02:09<00:00, 17.19s/it]Loading checkpoint shards: 100%|██████████| 8/8 [02:09<00:00, 16.17s/it]
+  -> DeepSeek-R1-Distill-Qwen-32B/umwp  (best_layer=47, base_F1=0.906)
+  -> DeepSeek-R1-Distill-Qwen-32B/treecut  (best_layer=48, base_F1=0.866)
+[DeepSeek-R1-Distill-Llama-70B] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/17 [00:00<?, ?it/s]Loading checkpoint shards:   6%|▌         | 1/17 [00:44<11:56, 44.81s/it]Loading checkpoint shards:  12%|█▏        | 2/17 [01:32<11:41, 46.77s/it]Loading checkpoint shards:  18%|█▊        | 3/17 [01:41<06:51, 29.41s/it]Loading checkpoint shards:  24%|██▎       | 4/17 [02:29<07:58, 36.81s/it]Loading checkpoint shards:  29%|██▉       | 5/17 [03:24<08:40, 43.35s/it]Loading checkpoint shards:  35%|███▌      | 6/17 [04:24<08:56, 48.74s/it]Loading checkpoint shards:  41%|████      | 7/17 [05:09<07:57, 47.78s/it]Loading checkpoint shards:  47%|████▋     | 8/17 [05:58<07:13, 48.11s/it]Loading checkpoint shards:  53%|█████▎    | 9/17 [06:45<06:21, 47.63s/it]Loading checkpoint shards:  59%|█████▉    | 10/17 [08:25<07:27, 63.86s/it]Loading checkpoint shards:  65%|██████▍   | 11/17 [09:15<05:57, 59.51s/it]Loading checkpoint shards:  71%|███████   | 12/17 [10:01<04:38, 55.60s/it]Loading checkpoint shards:  76%|███████▋  | 13/17 [10:49<03:32, 53.20s/it]Loading checkpoint shards:  82%|████████▏ | 14/17 [11:35<02:33, 51.18s/it]Loading checkpoint shards:  88%|████████▊ | 15/17 [12:21<01:39, 49.61s/it]Loading checkpoint shards:  94%|█████████▍| 16/17 [13:10<00:49, 49.20s/it]Loading checkpoint shards: 100%|██████████| 17/17 [14:11<00:00, 52.73s/it]Loading checkpoint shards: 100%|██████████| 17/17 [14:11<00:00, 50.06s/it]
+  -> DeepSeek-R1-Distill-Llama-70B/umwp  (best_layer=31, base_F1=0.872)
+  -> DeepSeek-R1-Distill-Llama-70B/treecut  (best_layer=33, base_F1=0.893)
+[Qwen2.5-72B-Instruct] loading model (2 dataset(s) to process)...
+Loading checkpoint shards:   0%|          | 0/37 [00:00<?, ?it/s]Loading checkpoint shards:   3%|▎         | 1/37 [00:12<07:20, 12.23s/it]Loading checkpoint shards:   5%|▌         | 2/37 [00:25<07:32, 12.93s/it]Loading checkpoint shards:   8%|▊         | 3/37 [00:41<08:04, 14.25s/it]Loading checkpoint shards:  11%|█         | 4/37 [00:55<07:51, 14.30s/it]Loading checkpoint shards:  14%|█▎        | 5/37 [01:08<07:23, 13.85s/it]Loading checkpoint shards:  16%|█▌        | 6/37 [01:22<07:01, 13.61s/it]Loading checkpoint shards:  19%|█▉        | 7/37 [01:33<06:28, 12.94s/it]Loading checkpoint shards:  22%|██▏       | 8/37 [01:46<06:14, 12.93s/it]Loading checkpoint shards:  24%|██▍       | 9/37 [01:59<06:02, 12.96s/it]Loading checkpoint shards:  27%|██▋       | 10/37 [02:13<05:56, 13.19s/it]Loading checkpoint shards:  30%|██▉       | 11/37 [02:25<05:36, 12.95s/it]Loading checkpoint shards:  32%|███▏      | 12/37 [02:38<05:21, 12.85s/it]Loading checkpoint shards:  35%|███▌      | 13/37 [02:50<05:06, 12.76s/it]Loading checkpoint shards:  38%|███▊      | 14/37 [03:03<04:52, 12.73s/it]Loading checkpoint shards:  41%|████      | 15/37 [03:16<04:43, 12.88s/it]Loading checkpoint shards:  43%|████▎     | 16/37 [03:30<04:34, 13.08s/it]Loading checkpoint shards:  46%|████▌     | 17/37 [03:43<04:22, 13.13s/it]Loading checkpoint shards:  49%|████▊     | 18/37 [03:56<04:08, 13.08s/it]Loading checkpoint shards:  51%|█████▏    | 19/37 [04:14<04:19, 14.44s/it]Loading checkpoint shards:  54%|█████▍    | 20/37 [04:30<04:14, 14.95s/it]Loading checkpoint shards:  57%|█████▋    | 21/37 [04:43<03:52, 14.50s/it]Loading checkpoint shards:  59%|█████▉    | 22/37 [05:01<03:51, 15.41s/it]Loading checkpoint shards:  62%|██████▏   | 23/37 [05:17<03:40, 15.77s/it]Loading checkpoint shards:  65%|██████▍   | 24/37 [05:34<03:27, 15.97s/it]Loading checkpoint shards:  68%|██████▊   | 25/37 [05:47<03:00, 15.04s/it]Loading checkpoint shards:  70%|███████   | 26/37 [05:59<02:37, 14.35s/it]Loading checkpoint shards:  73%|███████▎  | 27/37 [06:12<02:19, 13.95s/it]Loading checkpoint shards:  76%|███████▌  | 28/37 [06:25<02:02, 13.65s/it]Loading checkpoint shards:  78%|███████▊  | 29/37 [06:38<01:47, 13.47s/it]Loading checkpoint shards:  81%|████████  | 30/37 [06:53<01:37, 13.88s/it]Loading checkpoint shards:  84%|████████▍ | 31/37 [07:06<01:21, 13.65s/it]Loading checkpoint shards:  86%|████████▋ | 32/37 [07:19<01:07, 13.47s/it]Loading checkpoint shards:  89%|████████▉ | 33/37 [07:31<00:51, 12.98s/it]Loading checkpoint shards:  92%|█████████▏| 34/37 [07:44<00:38, 12.80s/it]Loading checkpoint shards:  95%|█████████▍| 35/37 [07:58<00:26, 13.13s/it]Loading checkpoint shards:  97%|█████████▋| 36/37 [08:14<00:14, 14.02s/it]Loading checkpoint shards: 100%|██████████| 37/37 [08:26<00:00, 13.51s/it]Loading checkpoint shards: 100%|██████████| 37/37 [08:26<00:00, 13.69s/it]
+  -> Qwen2.5-72B-Instruct/umwp  (best_layer=56, base_F1=0.934)
+  -> Qwen2.5-72B-Instruct/treecut  (best_layer=58, base_F1=0.884)
+
+Wrote summary across 40 (model, dataset) pairs to /home/hwang302/.local/nlp/CARDS/experiment_result/causal_results/_measurement_A_sweep/summary.csv
+
+HEADLINE  v_probe margin range across 40 pairs: [-0.0330, +0.1429]
+          v_rand  margin range across 40 pairs: [-0.0137, +0.0986]
+          n pairs with no abs/num tokens in v_probe top-50: see per_pair tables
+Saved figure to /home/hwang302/.local/nlp/CARDS/experiment_result/causal_results/_measurement_A_sweep/fig_margin_sweep.png

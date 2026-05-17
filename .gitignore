@@ -18,3 +18,5 @@ src/data/embeddings
 *.env
 .cursor/
 paper_plots/
+xwang397_results_new
+experiment_result

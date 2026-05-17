@@ -1,0 +1,147 @@
+nohup: ignoring input
+Pairs to process: 42 (K_MAX=64)
+INLP pairs:   0%|          | 0/42 [00:00<?, ?it/s]/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:473: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+INLP pairs:   2%|▏         | 1/42 [39:18<26:51:50, 2358.79s/it]  [WARN] DeepSeek-R1-Distill-Llama-70B/treecut: K=0 retrained F1 (0.7411) differs from exp10 F1 (0.8930) by 0.1519 > 0.01. Possible sklearn hyperparam drift.
+INLP pairs:   5%|▍         | 2/42 [1:14:48<24:42:33, 2223.84s/it]INLP pairs:   7%|▋         | 3/42 [1:36:41<19:35:22, 1808.27s/it]INLP pairs:  10%|▉         | 4/42 [1:54:47<16:04:27, 1522.83s/it]INLP pairs:  12%|█▏        | 5/42 [2:04:29<12:10:00, 1183.79s/it]INLP pairs:  14%|█▍        | 6/42 [2:14:37<9:52:47, 988.00s/it]  INLP pairs:  17%|█▋        | 7/42 [2:25:19<8:30:13, 874.68s/it]INLP pairs:  19%|█▉        | 8/42 [2:38:11<7:57:15, 842.23s/it]INLP pairs:  21%|██▏       | 9/42 [2:53:49<7:59:41, 872.16s/it]INLP pairs:  24%|██▍       | 10/42 [3:08:07<7:42:41, 867.56s/it]INLP pairs:  26%|██▌       | 11/42 [3:16:17<6:28:38, 752.21s/it]INLP pairs:  29%|██▊       | 12/42 [3:27:34<6:04:40, 729.34s/it]INLP pairs:  31%|███       | 13/42 [3:35:55<5:18:58, 659.94s/it]INLP pairs:  33%|███▎      | 14/42 [3:44:56<4:51:12, 624.01s/it]INLP pairs:  36%|███▌      | 15/42 [4:06:14<6:09:35, 821.30s/it]INLP pairs:  38%|███▊      | 16/42 [4:27:52<6:58:05, 964.84s/it]INLP pairs:  40%|████      | 17/42 [4:51:56<7:42:02, 1108.88s/it]INLP pairs:  43%|████▎     | 18/42 [5:13:33<7:46:06, 1165.25s/it]INLP pairs:  45%|████▌     | 19/42 [5:17:42<5:41:16, 890.29s/it] INLP pairs:  48%|████▊     | 20/42 [5:21:01<4:10:15, 682.50s/it]INLP pairs:  50%|█████     | 21/42 [5:26:00<3:18:38, 567.53s/it]INLP pairs:  52%|█████▏    | 22/42 [5:35:11<3:07:31, 562.57s/it]/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:473: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:473: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+  [WARN] DeepSeek-R1-Distill-Llama-70B/umwp: K=0 retrained F1 (0.8477) differs from exp10 F1 (0.8723) by 0.0246 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] DeepSeek-R1-Distill-Qwen-32B/treecut: K=0 retrained F1 (0.7546) differs from exp10 F1 (0.8659) by 0.1113 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] DeepSeek-R1-Distill-Qwen-32B/umwp: K=0 retrained F1 (0.8526) differs from exp10 F1 (0.9056) by 0.0530 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Meta-Llama-3.1-8B/treecut: K=0 retrained F1 (0.5896) differs from exp10 F1 (0.7663) by 0.1767 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Meta-Llama-3.1-8B/umwp: K=0 retrained F1 (0.6576) differs from exp10 F1 (0.7458) by 0.0882 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Meta-Llama-3.1-8B-Instruct/treecut: K=0 retrained F1 (0.6306) differs from exp10 F1 (0.7776) by 0.1470 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Meta-Llama-3.1-8B-Instruct/umwp: K=0 retrained F1 (0.7651) differs from exp10 F1 (0.8329) by 0.0678 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Olmo-3-32B-Think/treecut: K=0 retrained F1 (0.6932) differs from exp10 F1 (0.7734) by 0.0802 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Olmo-3-32B-Think/umwp: K=0 retrained F1 (0.8540) differs from exp10 F1 (0.9280) by 0.0740 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Olmo-3-7B-Instruct/treecut: K=0 retrained F1 (0.6746) differs from exp10 F1 (0.7906) by 0.1160 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Olmo-3-7B-Instruct/umwp: K=0 retrained F1 (0.8029) differs from exp10 F1 (0.8426) by 0.0397 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Olmo-3-7B-Think/treecut: K=0 retrained F1 (0.6401) differs from exp10 F1 (0.7396) by 0.0995 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Olmo-3-7B-Think/umwp: K=0 retrained F1 (0.8170) differs from exp10 F1 (0.8835) by 0.0665 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-14B/treecut: K=0 retrained F1 (0.6494) differs from exp10 F1 (0.7726) by 0.1232 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-14B/umwp: K=0 retrained F1 (0.8059) differs from exp10 F1 (0.8945) by 0.0886 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-14B-Instruct/treecut: K=0 retrained F1 (0.7052) differs from exp10 F1 (0.8203) by 0.1151 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-14B-Instruct/umwp: K=0 retrained F1 (0.8520) differs from exp10 F1 (0.9319) by 0.0799 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-3B/treecut: K=0 retrained F1 (0.6183) differs from exp10 F1 (0.7471) by 0.1288 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-3B/umwp: K=0 retrained F1 (0.7482) differs from exp10 F1 (0.8109) by 0.0627 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-3B-Instruct/treecut: K=0 retrained F1 (0.6202) differs from exp10 F1 (0.7280) by 0.1078 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-3B-Instruct/umwp: K=0 retrained F1 (0.7923) differs from exp10 F1 (0.8611) by 0.0688 > 0.01. Possible sklearn hyperparam drift.
+/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:473: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+/home/hwang302/.conda/envs/cards/lib/python3.10/site-packages/sklearn/linear_model/_logistic.py:473: ConvergenceWarning: lbfgs failed to converge after 1000 iteration(s) (status=1):
+STOP: TOTAL NO. OF ITERATIONS REACHED LIMIT
+
+Increase the number of iterations to improve the convergence (max_iter=1000).
+You might also want to scale the data as shown in:
+    https://scikit-learn.org/stable/modules/preprocessing.html
+Please also refer to the documentation for alternative solver options:
+    https://scikit-learn.org/stable/modules/linear_model.html#logistic-regression
+  n_iter_i = _check_optimize_result(
+INLP pairs:  55%|█████▍    | 23/42 [6:34:37<7:43:34, 1463.93s/it]  [WARN] Qwen2.5-72B-Instruct/treecut: K=0 retrained F1 (0.7850) differs from exp10 F1 (0.8838) by 0.0988 > 0.01. Possible sklearn hyperparam drift.
+INLP pairs:  57%|█████▋    | 24/42 [7:19:20<9:08:50, 1829.49s/it]INLP pairs:  60%|█████▉    | 25/42 [7:21:24<6:13:26, 1318.03s/it]INLP pairs:  62%|██████▏   | 26/42 [7:23:34<4:16:24, 961.51s/it] INLP pairs:  64%|██████▍   | 27/42 [7:27:14<3:04:43, 738.92s/it]INLP pairs:  67%|██████▋   | 28/42 [7:32:37<2:23:17, 614.10s/it]INLP pairs:  69%|██████▉   | 29/42 [7:51:45<2:47:47, 774.42s/it]INLP pairs:  71%|███████▏  | 30/42 [8:09:04<2:50:46, 853.92s/it]INLP pairs:  74%|███████▍  | 31/42 [8:25:32<2:43:53, 893.95s/it]INLP pairs:  76%|███████▌  | 32/42 [8:39:59<2:27:38, 885.81s/it]INLP pairs:  79%|███████▊  | 33/42 [8:56:15<2:16:57, 913.08s/it]INLP pairs:  81%|████████  | 34/42 [9:06:27<1:49:40, 822.55s/it]INLP pairs:  83%|████████▎ | 35/42 [9:18:14<1:31:55, 787.93s/it]INLP pairs:  86%|████████▌ | 36/42 [9:31:29<1:19:00, 790.04s/it]  [WARN] Qwen2.5-72B-Instruct/umwp: K=0 retrained F1 (0.8867) differs from exp10 F1 (0.9337) by 0.0470 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-1.5B/treecut: K=0 retrained F1 (0.6332) differs from exp10 F1 (0.7430) by 0.1098 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-1.5B/umwp: K=0 retrained F1 (0.7841) differs from exp10 F1 (0.8574) by 0.0733 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-1.5B-Instruct/treecut: K=0 retrained F1 (0.6176) differs from exp10 F1 (0.7332) by 0.1156 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-1.5B-Instruct/umwp: K=0 retrained F1 (0.8142) differs from exp10 F1 (0.8703) by 0.0561 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-7B/treecut: K=0 retrained F1 (0.6546) differs from exp10 F1 (0.7850) by 0.1304 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-7B/umwp: K=0 retrained F1 (0.8087) differs from exp10 F1 (0.8734) by 0.0647 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-7B-Instruct/treecut: K=0 retrained F1 (0.6491) differs from exp10 F1 (0.7769) by 0.1278 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] Qwen2.5-Math-7B-Instruct/umwp: K=0 retrained F1 (0.8225) differs from exp10 F1 (0.8869) by 0.0644 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] deepseek-math-7b-instruct/treecut: K=0 retrained F1 (0.6203) differs from exp10 F1 (0.7527) by 0.1324 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] deepseek-math-7b-instruct/umwp: K=0 retrained F1 (0.7488) differs from exp10 F1 (0.7996) by 0.0508 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gemma-3-12b-it/treecut: K=0 retrained F1 (0.7232) differs from exp10 F1 (0.7981) by 0.0749 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gemma-3-12b-it/umwp: K=0 retrained F1 (0.8357) differs from exp10 F1 (0.9117) by 0.0760 > 0.01. Possible sklearn hyperparam drift.
+INLP pairs:  88%|████████▊ | 37/42 [10:06:12<1:38:09, 1177.88s/it]INLP pairs:  90%|█████████ | 38/42 [10:31:26<1:25:15, 1278.98s/it]INLP pairs:  93%|█████████▎| 39/42 [10:37:38<50:20, 1006.86s/it]  INLP pairs:  95%|█████████▌| 40/42 [10:46:41<28:55, 867.59s/it] INLP pairs:  98%|█████████▊| 41/42 [10:54:13<12:22, 742.77s/it]INLP pairs: 100%|██████████| 42/42 [11:02:05<00:00, 661.63s/it]INLP pairs: 100%|██████████| 42/42 [11:02:05<00:00, 945.84s/it]
+  [WARN] gemma-3-27b-it/treecut: K=0 retrained F1 (0.8015) differs from exp10 F1 (0.8660) by 0.0645 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gemma-3-27b-it/umwp: K=0 retrained F1 (0.8636) differs from exp10 F1 (0.9273) by 0.0637 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gemma-3-4b-it/treecut: K=0 retrained F1 (0.6530) differs from exp10 F1 (0.7439) by 0.0909 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gemma-3-4b-it/umwp: K=0 retrained F1 (0.8138) differs from exp10 F1 (0.8431) by 0.0293 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gpt-oss-20b/treecut: K=0 retrained F1 (0.7660) differs from exp10 F1 (0.7247) by 0.0413 > 0.01. Possible sklearn hyperparam drift.
+  [WARN] gpt-oss-20b/umwp: K=0 retrained F1 (0.8064) differs from exp10 F1 (0.8773) by 0.0709 > 0.01. Possible sklearn hyperparam drift.
+Wrote summary_curves.csv: 2730 rows, 42 pairs
+
+[ANCHOR MISMATCH] 42 pairs deviate from exp10 at K=0 by > 0.01:
+  DeepSeek-R1-Distill-Llama-70B/treecut: exp10=0.8930 vs retrained=0.7411 (Δ=0.1519)
+  DeepSeek-R1-Distill-Llama-70B/umwp: exp10=0.8723 vs retrained=0.8477 (Δ=0.0246)
+  DeepSeek-R1-Distill-Qwen-32B/treecut: exp10=0.8659 vs retrained=0.7546 (Δ=0.1113)
+  DeepSeek-R1-Distill-Qwen-32B/umwp: exp10=0.9056 vs retrained=0.8526 (Δ=0.0530)
+  Meta-Llama-3.1-8B-Instruct/treecut: exp10=0.7776 vs retrained=0.6306 (Δ=0.1470)
+  Meta-Llama-3.1-8B-Instruct/umwp: exp10=0.8329 vs retrained=0.7651 (Δ=0.0678)
+  Meta-Llama-3.1-8B/treecut: exp10=0.7663 vs retrained=0.5896 (Δ=0.1767)
+  Meta-Llama-3.1-8B/umwp: exp10=0.7458 vs retrained=0.6576 (Δ=0.0882)
+  Olmo-3-32B-Think/treecut: exp10=0.7734 vs retrained=0.6932 (Δ=0.0802)
+  Olmo-3-32B-Think/umwp: exp10=0.9280 vs retrained=0.8540 (Δ=0.0740)
+  Olmo-3-7B-Instruct/treecut: exp10=0.7906 vs retrained=0.6746 (Δ=0.1160)
+  Olmo-3-7B-Instruct/umwp: exp10=0.8426 vs retrained=0.8029 (Δ=0.0397)
+  Olmo-3-7B-Think/treecut: exp10=0.7396 vs retrained=0.6401 (Δ=0.0995)
+  Olmo-3-7B-Think/umwp: exp10=0.8835 vs retrained=0.8170 (Δ=0.0665)
+  Qwen2.5-14B-Instruct/treecut: exp10=0.8203 vs retrained=0.7052 (Δ=0.1151)
+  Qwen2.5-14B-Instruct/umwp: exp10=0.9319 vs retrained=0.8520 (Δ=0.0799)
+  Qwen2.5-14B/treecut: exp10=0.7726 vs retrained=0.6494 (Δ=0.1232)
+  Qwen2.5-14B/umwp: exp10=0.8945 vs retrained=0.8059 (Δ=0.0886)
+  Qwen2.5-3B-Instruct/treecut: exp10=0.7280 vs retrained=0.6202 (Δ=0.1078)
+  Qwen2.5-3B-Instruct/umwp: exp10=0.8611 vs retrained=0.7923 (Δ=0.0688)
+  Qwen2.5-3B/treecut: exp10=0.7471 vs retrained=0.6183 (Δ=0.1288)
+  Qwen2.5-3B/umwp: exp10=0.8109 vs retrained=0.7482 (Δ=0.0627)
+  Qwen2.5-72B-Instruct/treecut: exp10=0.8838 vs retrained=0.7850 (Δ=0.0988)
+  Qwen2.5-72B-Instruct/umwp: exp10=0.9337 vs retrained=0.8867 (Δ=0.0470)
+  Qwen2.5-Math-1.5B-Instruct/treecut: exp10=0.7332 vs retrained=0.6176 (Δ=0.1156)
+  Qwen2.5-Math-1.5B-Instruct/umwp: exp10=0.8703 vs retrained=0.8142 (Δ=0.0561)
+  Qwen2.5-Math-1.5B/treecut: exp10=0.7430 vs retrained=0.6332 (Δ=0.1098)
+  Qwen2.5-Math-1.5B/umwp: exp10=0.8574 vs retrained=0.7841 (Δ=0.0733)
+  Qwen2.5-Math-7B-Instruct/treecut: exp10=0.7769 vs retrained=0.6491 (Δ=0.1278)
+  Qwen2.5-Math-7B-Instruct/umwp: exp10=0.8869 vs retrained=0.8225 (Δ=0.0644)
+  Qwen2.5-Math-7B/treecut: exp10=0.7850 vs retrained=0.6546 (Δ=0.1304)
+  Qwen2.5-Math-7B/umwp: exp10=0.8734 vs retrained=0.8087 (Δ=0.0647)
+  deepseek-math-7b-instruct/treecut: exp10=0.7527 vs retrained=0.6203 (Δ=0.1324)
+  deepseek-math-7b-instruct/umwp: exp10=0.7996 vs retrained=0.7488 (Δ=0.0508)
+  gemma-3-12b-it/treecut: exp10=0.7981 vs retrained=0.7232 (Δ=0.0749)
+  gemma-3-12b-it/umwp: exp10=0.9117 vs retrained=0.8357 (Δ=0.0760)
+  gemma-3-27b-it/treecut: exp10=0.8660 vs retrained=0.8015 (Δ=0.0645)
+  gemma-3-27b-it/umwp: exp10=0.9273 vs retrained=0.8636 (Δ=0.0637)
+  gemma-3-4b-it/treecut: exp10=0.7439 vs retrained=0.6530 (Δ=0.0909)
+  gemma-3-4b-it/umwp: exp10=0.8431 vs retrained=0.8138 (Δ=0.0293)
+  gpt-oss-20b/treecut: exp10=0.7247 vs retrained=0.7660 (Δ=0.0413)
+  gpt-oss-20b/umwp: exp10=0.8773 vs retrained=0.8064 (Δ=0.0709)
+Saved figure to /home/hwang302/.local/nlp/CARDS/experiment_result/causal_results/_inlp/fig_inlp_curves.png
+
+Headline F1 at selected K:
+dataset  K  mean_f1  std_f1
+   umwp  1   0.7951  0.0462
+   umwp  4   0.7893  0.0598
+   umwp 16   0.7226  0.0913
+   umwp 64   0.5783  0.0823
+treecut  1   0.6641  0.0609
+treecut  4   0.6572  0.0653
+treecut 16   0.6322  0.0657
+treecut 64   0.5606  0.0562

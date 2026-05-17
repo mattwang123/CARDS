@@ -1,0 +1,465 @@
+% =============================================================================
+% Appendix-style section: Confounder Validation of the Insufficiency Probe
+% Status: draft, section-only (no \documentclass / preamble)
+% Last updated: 2026-05-13
+%
+% Required packages in the main paper preamble:
+%   \usepackage{booktabs}
+%   \usepackage{array}
+%   \usepackage{amsmath}
+% =============================================================================
+
+\section{Confounder Validation of the Insufficiency Probe}
+\label{sec:confounder}
+
+\subsection{Motivation}
+
+We train a linear probe on residual-stream activations at $t{=}0$
+(the end-of-prompt token, before any generation) to classify whether a
+math word problem is logically insufficient. The probe achieves high
+held-out F1 across $21$ models on UMWP (mean $0.87$) and TreeCut (mean
+$0.79$). A natural concern is whether this F1 reflects a genuine
+semantic signal or merely a surface artifact such as token length,
+numeric token count, problem complexity, or insufficiency-indicating
+lexical cues. We address this through three complementary defenses,
+applied at $t{=}0$ on the solving prompt that matches the probe's
+training distribution. For clarity of exposition, we report results on
+six representative models spanning $1.5$B--$70$B parameters and four
+families (Qwen, LLaMA, Gemma, DeepSeek-R1). Full $21$-model results are
+deferred to a separate table.
+
+\subsection{Defense 1: Minimal Contrastive Pairs}
+\label{sec:d1}
+
+\paragraph{Construction.}
+For each dataset we sample $250$ solvable questions $q^+$ from the test
+set and use a powerful LLM to produce a minimally edited unsolvable
+counterpart $q^-$ by substituting a single numerical value with a vague
+placeholder (e.g.\ ``$27$ files'' $\to$ ``some files''). A second LLM
+judge verifies (i) the edit is minimal ($\le 3$ words changed) and
+(ii) $q^-$ is genuinely unsolvable under reasonable assumptions.
+Verified pair counts and mean token edit distances:
+$239/250$ verified, edit distance $1.06$ on UMWP;
+$232/250$ verified, edit distance $1.00$ on TreeCut.
+
+\paragraph{What it controls.}
+$q^+$ and $q^-$ share length, scenario, and almost all lexical content.
+A probe that reduces to length, scenario, or word distribution cannot
+systematically assign higher $P(\text{insuff})$ to $q^-$.
+
+\paragraph{Reported metric.}
+We report
+\[
+\mathrm{Mean\_Gap} \;=\; \mathbb{E}_{(q^+,q^-)}\!\left[\,
+   P(\text{insuff}\mid q^-) - P(\text{insuff}\mid q^+)\,\right],
+\]
+together with the raw class-conditional probabilities
+$\overline{P(\text{insuff}\mid q^+)}$ and
+$\overline{P(\text{insuff}\mid q^-)}$ to expose probe degeneracy
+(saturation at $0$ or $1$).
+
+\begin{table}[h]
+\centering
+\small
+\caption{D1 results. On UMWP, all six probes assign substantially higher
+insufficiency probability to $q^-$ than $q^+$
+($\mathrm{Mean\_Gap} \in [0.52, 0.86]$). On TreeCut, only the Gemma
+models retain a non-trivial gap; the remaining four either saturate
+near $0$ ($\overline{P(\cdot)} < 0.01$) or near $1$
+($\overline{P(\cdot)} \approx 0.88$).}
+\label{tab:d1}
+\begin{tabular}{llrrrr}
+\toprule
+Dataset & Model & Layer
+        & $\overline{P}\!\mid\!q^+$
+        & $\overline{P}\!\mid\!q^-$
+        & $\mathrm{Mean\_Gap}$ \\
+\midrule
+\multirow{6}{*}{UMWP}
+ & Qwen2.5-Math-1.5B-Instruct      & 18 & 0.24 & 0.94 & \textbf{0.70} \\
+ & Qwen2.5-Math-7B                 & 20 & 0.02 & 0.77 & \textbf{0.75} \\
+ & Meta-Llama-3.1-8B               & 19 & 0.31 & 0.83 & \textbf{0.52} \\
+ & gemma-3-12b-it                  & 26 & 0.18 & 0.94 & \textbf{0.76} \\
+ & gemma-3-27b-it                  & 34 & 0.06 & 0.92 & \textbf{0.86} \\
+ & DeepSeek-R1-Distill-Llama-70B   & 31 & 0.26 & 0.96 & \textbf{0.70} \\
+\midrule
+\multirow{6}{*}{TreeCut}
+ & Qwen2.5-Math-1.5B-Instruct      & 16 & 0.88 & 0.93 & 0.06 \\
+ & Qwen2.5-Math-7B                 & 15 & 0.88 & 0.89 & 0.01 \\
+ & Meta-Llama-3.1-8B               &  9 & 0.00 & 0.00 & 0.00 \\
+ & gemma-3-12b-it                  & 25 & 0.14 & 0.54 & \textbf{0.41} \\
+ & gemma-3-27b-it                  & 28 & 0.21 & 0.67 & \textbf{0.46} \\
+ & DeepSeek-R1-Distill-Llama-70B   & 33 & 0.00 & 0.03 & 0.03 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Interpretation.}
+On UMWP, a single-word edit that preserves length and lexical content
+flips the probe by a mean of $0.70$ probability mass. The probe is
+responding to semantic content, not surface features. On TreeCut the
+defense holds only for the two Gemma models; for the other four,
+probe saturation (e.g.\ $\overline{P} \approx 0.88$ for both classes on
+Qwen2.5-Math-7B) makes the test uninformative for those models. We do
+not claim a clean semantic signal for TreeCut on saturated probes.
+
+\subsection{Defense 2: Adversarial Lexical Injection}
+\label{sec:d2}
+
+\paragraph{Construction.}
+We mine the top TF-IDF cue tokens from the insufficient class and
+inject them into solvable test questions. A probe relying on these
+keywords should produce a false-positive flip; a probe reading
+semantics should remain stable.
+
+\paragraph{Filter.}
+We evaluate only on (model, dataset) pairs where the baseline
+false-positive rate is below $0.5$. Above this threshold the probe is
+already saturated for the dataset and the FP rate cannot meaningfully
+grow, making the test degenerate.
+
+\paragraph{Reported metric.}
+$\mathrm{FP\_Excess} = \overline{\mathrm{FP\_rate}_{\text{injected}}}
+- \mathrm{FP\_rate}_{\text{baseline}}$.
+A semantic probe should satisfy $\mathrm{FP\_Excess} \approx 0$.
+
+\begin{table}[h]
+\centering
+\small
+\caption{D2 results, restricted to (model, dataset) pairs with
+non-saturated baselines. Cue sets are dataset-specific:
+\textit{UMWP}: \{apples, earned, many, girls, games\};
+\textit{TreeCut}: \{many, texas, texas bbq, plate, unspecified\}.}
+\label{tab:d2}
+\begin{tabular}{llrrr}
+\toprule
+Dataset & Model & Baseline\_FP & Injection\_FP & FP\_Excess \\
+\midrule
+\multirow{6}{*}{UMWP}
+ & Qwen2.5-Math-1.5B-Instruct       & 0.14 & 0.26 & 0.11 \\
+ & Qwen2.5-Math-7B                  & 0.02 & 0.06 & 0.04 \\
+ & Meta-Llama-3.1-8B                & 0.33 & 0.45 & 0.13 \\
+ & gemma-3-12b-it                   & 0.19 & 0.37 & 0.18 \\
+ & gemma-3-27b-it                   & 0.06 & 0.11 & 0.05 \\
+ & DeepSeek-R1-Distill-Llama-70B    & 0.26 & 0.66 & \textbf{0.39} \\
+\midrule
+\multirow{4}{*}{TreeCut}
+ & Meta-Llama-3.1-8B                & 0.00 & 0.00 & 0.00 \\
+ & gemma-3-12b-it                   & 0.08 & 0.11 & 0.03 \\
+ & gemma-3-27b-it                   & 0.20 & 0.20 & $-0.01$ \\
+ & DeepSeek-R1-Distill-Llama-70B    & 0.00 & 0.01 & 0.00 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Interpretation.}
+Five of the six UMWP probes show $\mathrm{FP\_Excess} \le 0.18$
+(robust to lexical cues). The DeepSeek-R1-Distill-Llama-70B probe shows
+$\mathrm{FP\_Excess} = 0.39$, indicating partial keyword sensitivity;
+we report this honestly rather than excluding the model. On TreeCut,
+the four non-saturated probes all show $\mathrm{FP\_Excess} < 0.05$.
+We treat D2 as supplementary corroboration of D1; it cannot bound the
+marginal lexical contribution but rules out a pure-keyword probe on
+most models.
+
+\subsection{Defense 3: Geometric Separability from Surface Confounders}
+\label{sec:d3}
+
+\paragraph{Construction.}
+For each model and dataset, we estimate four ``confounder directions''
+in residual space by training auxiliary linear regressors mapping
+hidden states to (i) token length, (ii) numeric token count,
+(iii) Flesch reading-ease proxy, and (iv) presence of insufficient
+lexical cues. The probe direction $v_{\text{probe}}$ is the
+StandardScaler-corrected logistic-regression weight from the unified
+exp10 probe at the same layer.
+
+\paragraph{Reported metric.}
+$\cos(v_{\text{probe}}, v_{\text{conf}_i})$ for each confounder $i$.
+A value near $0$ indicates the probe direction is orthogonal to that
+confounder direction in activation space: the probe is not lying within
+the subspace spanned by surface features.
+
+\begin{table}[h]
+\centering
+\small
+\caption{D3 cosines. All $|\cos|$ are below $0.08$. The insufficiency
+direction is geometrically near-orthogonal to all four measured surface
+directions on both datasets. (TreeCut does not include a lexical
+confounder direction because TF-IDF cue mining was too noisy to
+produce a single direction.)}
+\label{tab:d3}
+\begin{tabular}{llrrrr}
+\toprule
+Dataset & Model
+   & $\cos$\,length
+   & $\cos$\,numcount
+   & $\cos$\,complexity
+   & $\cos$\,lexical \\
+\midrule
+\multirow{6}{*}{UMWP}
+ & Qwen2.5-Math-1.5B-Instruct      & $\phantom{-}0.012$ & $-0.075$ & $\phantom{-}0.017$ & $\phantom{-}0.063$ \\
+ & Qwen2.5-Math-7B                 & $-0.027$ & $-0.027$ & $-0.011$ & $\phantom{-}0.030$ \\
+ & Meta-Llama-3.1-8B               & $-0.004$ & $-0.017$ & $\phantom{-}0.005$ & $\phantom{-}0.025$ \\
+ & gemma-3-12b-it                  & $\phantom{-}0.007$ & $\phantom{-}0.018$ & $\phantom{-}0.051$ & $\phantom{-}0.057$ \\
+ & gemma-3-27b-it                  & $\phantom{-}0.065$ & $\phantom{-}0.035$ & $\phantom{-}0.015$ & $\phantom{-}0.011$ \\
+ & DeepSeek-R1-Distill-Llama-70B   & $-0.007$ & $\phantom{-}0.007$ & $\phantom{-}0.008$ & $\phantom{-}0.015$ \\
+\midrule
+\multirow{6}{*}{TreeCut}
+ & Qwen2.5-Math-1.5B-Instruct      & $\phantom{-}0.017$ & $\phantom{-}0.013$ & $-0.068$ & --- \\
+ & Qwen2.5-Math-7B                 & $\phantom{-}0.002$ & $\phantom{-}0.023$ & $-0.055$ & --- \\
+ & Meta-Llama-3.1-8B               & $\phantom{-}0.026$ & $-0.009$ & $-0.024$ & --- \\
+ & gemma-3-12b-it                  & $-0.039$ & $\phantom{-}0.021$ & $-0.020$ & --- \\
+ & gemma-3-27b-it                  & $\phantom{-}0.020$ & $-0.010$ & $-0.017$ & --- \\
+ & DeepSeek-R1-Distill-Llama-70B   & $-0.009$ & $\phantom{-}0.033$ & $-0.006$ & --- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Confound vs. Natural Correlate}
+\label{sec:reframe}
+
+The four features tested by D3 are natural correlates of insufficiency
+in math word problems: an insufficient problem typically has one fewer
+numerical value (lower numcount), may contain hedging vocabulary
+(lexical cues), and may be phrased differently (length, complexity).
+These correlations are properties of the input distribution, not
+artifacts to control away. Following \citet{arditi2024refusal} on
+refusal directions, we adopt the position that the appropriate test
+is whether the probe direction \emph{reduces to} surface features,
+not whether it correlates with them. D1 (single-word semantic edits
+flip the UMWP probe by $\overline{\mathrm{Mean\_Gap}} = 0.71$) and D3
+(all $|\cos| < 0.08$ across both datasets) jointly establish that
+the probe direction captures a semantic signal that is correlated
+with surface features by data construction but is not contained in
+their span.
+
+\subsection{What We Claim}
+
+\begin{itemize}
+\item On UMWP, the unified probe direction $(i)$ responds to
+single-word semantic perturbations
+($\mathrm{Mean\_Gap} \in [0.52, 0.86]$ across all six representative
+models), $(ii)$ is largely insensitive to lexical-cue injection
+($\mathrm{FP\_Excess} \le 0.18$ for five of six models), and
+$(iii)$ is geometrically near-orthogonal to length, numeric-count,
+complexity, and lexical directions ($|\cos| \le 0.08$). The probe
+therefore reads a semantic signal not reducible to the surface
+features tested.
+
+\item On TreeCut, D3 (geometric separability) and D2
+(lexical robustness on non-saturated probes) hold uniformly. D1
+holds only for the two Gemma models in our representative set. The
+remaining models exhibit probe saturation that renders D1
+uninformative rather than refuted.
+\end{itemize}
+
+\subsection{Limitations}
+
+\begin{itemize}
+\item TreeCut probing is weaker than UMWP probing by every measure.
+Several model probes saturate at $P(\text{insuff})\!\approx\!0$ or
+$\approx\!1$ regardless of input, which prevents D1 from
+discriminating $q^+$ from $q^-$ on those models. We do not claim a
+clean semantic signal for TreeCut on saturated probes.
+
+\item The four confounder directions in D3 (length, numcount,
+complexity, lexical) are not exhaustive. Higher-order surface
+features such as syntactic structure, discourse markers, or
+operator distribution are not tested here.
+
+\item One model (DeepSeek-R1-Distill-Llama-70B) shows partial
+lexical-cue sensitivity on UMWP D2
+($\mathrm{FP\_Excess} = 0.39$). The semantic and geometric evidence
+(D1 $\mathrm{Mean\_Gap} = 0.70$, all D3 cosines $\le 0.015$) supports
+a non-pure-keyword probe even for this model, but the lexical
+contribution cannot be quantitatively bounded by these defenses.
+
+\item Defenses are applied at $t{=}0$. The robustness of the probe
+during chain-of-thought generation is established separately by
+matching of Unified and Separate (oracle, retrained per cutoff)
+probe F1 across cutoffs ($\mathrm{mean}|\Delta\mathrm{F1}|<0.01$),
+which is the subject of the trajectory analysis section.
+\end{itemize}
+
+% =============================================================================
+% Section: Probe trajectory vs.\ verbalization trajectory
+% =============================================================================
+
+\section{Two Findings on the Effect of Chain-of-Thought}
+\label{sec:cot-findings}
+
+We compare two trajectories across chain-of-thought positions
+$\tau \in \{0, 20, 40, 60, 100\}$\% for every (model, dataset, sample):
+
+\begin{itemize}
+\item \textbf{Internal trajectory} (probe F1): the unified linear probe
+(Section~\ref{sec:confounder}) evaluated on residual-stream activations
+extracted at position $\tau$. This measures the discriminative power of
+the internal representation at $\tau$.
+
+\item \textbf{Behavioral trajectory} (forced-decoded verbalization):
+truncate the model's CoT at $\tau$, append
+\verb|\n\n**Final Answer**\n\boxed{|, and greedy-decode the answer.
+A judge grades the result. We report
+$\mathrm{Q2\_acc} = P(\text{model writes ``Insufficient''}\,\mid\,\text{insufficient input})$
+and
+$\mathrm{Q3\_acc} = P(\text{model gives correct number}\,\mid\,\text{sufficient input})$.
+\end{itemize}
+
+Both trajectories are computed on the same $21$ models, two datasets
+(UMWP, TreeCut), and the same five cutoff positions.
+Population means are shown in Table~\ref{tab:traj-popmeans}.
+
+\begin{table}[h]
+\centering
+\small
+\caption{Population-mean trajectories across $21$ models. ``$\Delta$ from 0\%''
+rows isolate the direction and magnitude of change at each cutoff.}
+\label{tab:traj-popmeans}
+\begin{tabular}{lrrrrr}
+\toprule
+                                 &    0\% &   20\% &   40\% &   60\% &  100\% \\
+\midrule
+\multicolumn{6}{l}{\emph{UMWP}} \\
+\addlinespace[2pt]
+Probe F1 (internal)              & 0.871 & 0.744 & 0.768 & 0.791 & 0.869 \\
+\quad $\Delta$ from 0\%          & $\phantom{-}0.000$ & $\mathbf{-0.127}$ & $-0.103$ & $-0.080$ & $-0.002$ \\
+Q2 abstention (verbalization)    & 0.444 & 0.493 & 0.491 & 0.480 & 0.556 \\
+\quad $\Delta$ from 0\%          & $\phantom{-}0.000$ & $\mathbf{+0.049}$ & $+0.048$ & $+0.037$ & $\mathbf{+0.112}$ \\
+Q3 solving (verbalization)       & 0.378 & 0.384 & 0.497 & 0.639 & 0.873 \\
+\quad $\Delta$ from 0\%          & $\phantom{-}0.000$ & $+0.006$ & $+0.119$ & $+0.261$ & $\mathbf{+0.495}$ \\
+\addlinespace[4pt]
+\multicolumn{6}{l}{\emph{TreeCut}} \\
+\addlinespace[2pt]
+Probe F1 (internal)              & 0.785 & 0.618 & 0.618 & 0.652 & 0.722 \\
+\quad $\Delta$ from 0\%          & $\phantom{-}0.000$ & $\mathbf{-0.167}$ & $-0.167$ & $-0.133$ & $-0.063$ \\
+Q2 abstention (verbalization)    & 0.167 & 0.206 & 0.258 & 0.251 & 0.262 \\
+\quad $\Delta$ from 0\%          & $\phantom{-}0.000$ & $\mathbf{+0.040}$ & $+0.091$ & $+0.084$ & $\mathbf{+0.096}$ \\
+Q3 solving (verbalization)       & 0.108 & 0.112 & 0.148 & 0.208 & 0.485 \\
+\quad $\Delta$ from 0\%          & $\phantom{-}0.000$ & $+0.004$ & $+0.040$ & $+0.100$ & $\mathbf{+0.378}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Finding 1: Probe and verbalization move in opposite directions
+at the onset of reasoning}
+\label{sec:opposite-direction}
+
+At the $0\!\to\!20\%$ cutoff transition --- the moment when the model
+transitions from no CoT to its first chunk of reasoning --- the internal
+probe and the Q2 abstention verbalization move in \emph{opposite directions
+on the same models with the same data}:
+
+\begin{center}
+\small
+\begin{tabular}{lrr}
+\toprule
+                  & UMWP & TreeCut \\
+\midrule
+$\Delta$ Probe F1 at $0\!\to\!20\%$               & $-0.127$ & $-0.167$ \\
+$\Delta$ Q2 verbalization at $0\!\to\!20\%$       & $+0.049$ & $+0.040$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The internal representation loses $13$--$17$ points of insufficiency
+discriminability at the same cutoff position where behavioral abstention
+gains $4$--$5$ points. The sign reversal is observed on the same
+$(\text{model}, \text{dataset}, \text{sample})$ triples; it is not a
+between-models artifact.
+
+This is a direct contradiction of the simplest hypothesis that probe and
+behavior are aligned readouts of the same internal state. They are not
+aligned at the most informative position: the first reasoning step.
+
+\subsection{Finding 2: Chain-of-thought helps solving far more than it
+helps abstaining}
+\label{sec:asymmetric-cot-gain}
+
+Over the full CoT ($0\!\to\!100\%$), reasoning length improves the model's
+ability to produce correct numerical answers (Q3) much more than its
+ability to correctly abstain from unsolvable problems (Q2):
+
+\begin{center}
+\small
+\begin{tabular}{lrrr}
+\toprule
+Dataset & $\Delta$ Q3 (solving) & $\Delta$ Q2 (abstention) & Ratio \\
+\midrule
+UMWP    & $+0.495$ & $+0.112$ & $4.4\times$ \\
+TreeCut & $+0.378$ & $+0.096$ & $3.9\times$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+CoT-induced improvement is $\approx 4\times$ larger for solving than for
+abstention. The asymmetry is consistent across both datasets and across
+the $21$-model population mean.
+
+This is empirically distinct from the standard claim that ``CoT helps
+performance.'' What CoT chiefly helps is the production of answers on
+solvable inputs. The capacity to correctly decline an unsolvable input
+grows much more slowly with reasoning length. Models do not become
+proportionally more epistemically cautious as they think longer; they
+become substantially more productive of confident answers.
+
+\subsection{What we claim}
+
+\begin{enumerate}
+\item \emph{Internal and behavioral signals diverge at the first reasoning
+step.} At cutoff $0\!\to\!20\%$, mean probe F1 falls by $0.127$ (UMWP) /
+$0.167$ (TreeCut); mean Q2 verbalization rises by $0.049$ / $0.040$.
+Opposite directions on identical $(\text{model}, \text{dataset})$ pairs,
+$21$ models, two datasets.
+
+\item \emph{Chain-of-thought has an asymmetric epistemic effect.}
+Over the full CoT, solving accuracy gains $+0.495$ (UMWP) / $+0.378$
+(TreeCut) while abstention accuracy gains only $+0.112$ / $+0.096$.
+Reasoning is approximately four times more beneficial for producing
+answers than for declining to answer.
+\end{enumerate}
+
+Both claims are population-level statistical observations. They are not
+causal at the sample level. We make no claim that the probe trajectory
+predicts the verbalization outcome of any individual sample, nor that
+manipulating the probe direction will alter verbalization.
+
+\subsection{Limitations}
+
+\begin{itemize}
+\item Verbalization is measured by forced-decoded answers after a fixed
+suffix. Free-form continuation of the CoT may produce different
+abstention rates, especially in models trained to use specific stop
+tokens.
+
+\item Q2 sample counts vary across models; on TreeCut several
+instruction-tuned models rarely abstain at all
+($N_{\text{Q2}}<30$). Population means weight models equally regardless
+of effective sample size. Per-model trajectories with very low $N_{\text{Q2}}$
+should be read as illustrative.
+
+\item The probe's internal trajectory is itself validated against per-cutoff
+oracle probes ($\mathrm{mean}|\Delta\mathrm{F1}|<0.01$ between unified and
+separately retrained probes), ruling out a single-probe overfitting
+artifact for the cliff-and-recover shape.
+
+\item The opposite-direction observation is robust at the population level
+but does not establish that probe F1 \emph{causes}, or is mechanistically
+prior to, verbalization. The two trajectories are computed from
+the same hidden state stream and are not independent random variables;
+their correlation structure at the sample level is the subject of
+further analysis.
+\end{itemize}
+
+% =============================================================================
+% Bibliography entry needed in main paper:
+% @article{arditi2024refusal,
+%   title={Refusal in language models is mediated by a single direction},
+%   author={Arditi, Andy and Obeso, Oscar and Syed, Aaquib and
+%           Paleka, Daniel and Panickssery, Nina and
+%           Gurnee, Wes and Nanda, Neel},
+%   journal={arXiv preprint arXiv:2406.11717},
+%   year={2024}
+% }
+% =============================================================================

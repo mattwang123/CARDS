@@ -1,0 +1,3 @@
+[RUN]  Qwen2.5-Math-1.5B-Instruct/umwp/delta_u   L--=18   nQ1=30 nQ2=30 nQ3=30 nQ4=27
+  loading model...
+`torch_dtype` is deprecated! Use `dtype` instead!

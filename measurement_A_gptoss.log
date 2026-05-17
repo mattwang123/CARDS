@@ -1,0 +1,35 @@
+nohup: ignoring input
+`torch_dtype` is deprecated! Use `dtype` instead!
+MXFP4 quantization requires Triton and kernels installed: CUDA requires Triton >= 3.4.0, XPU requires Triton >= 3.5.0, we will default to dequantizing the model to bf16
+[Qwen2.5-Math-1.5B] nothing to do, skipping
+[Qwen2.5-Math-1.5B-Instruct] nothing to do, skipping
+[Qwen2.5-3B] nothing to do, skipping
+[Qwen2.5-3B-Instruct] nothing to do, skipping
+[gemma-3-4b-it] nothing to do, skipping
+[Qwen2.5-Math-7B] nothing to do, skipping
+[Qwen2.5-Math-7B-Instruct] nothing to do, skipping
+[Meta-Llama-3.1-8B] nothing to do, skipping
+[Meta-Llama-3.1-8B-Instruct] nothing to do, skipping
+[gemma-3-12b-it] nothing to do, skipping
+[Olmo-3-7B-Think] nothing to do, skipping
+[Olmo-3-7B-Instruct] nothing to do, skipping
+[deepseek-math-7b-instruct] nothing to do, skipping
+[Qwen2.5-14B] nothing to do, skipping
+[Qwen2.5-14B-Instruct] nothing to do, skipping
+[gemma-3-27b-it] nothing to do, skipping
+[Olmo-3-32B-Think] nothing to do, skipping
+[gpt-oss-20b] loading model (2 dataset(s) to process)...
+  sdpa unsupported for gpt-oss-20b, retrying with eager
+Loading checkpoint shards:   0%|          | 0/3 [00:00<?, ?it/s]Loading checkpoint shards:  33%|███▎      | 1/3 [00:16<00:33, 16.77s/it]Loading checkpoint shards:  67%|██████▋   | 2/3 [00:35<00:18, 18.14s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:50<00:00, 16.46s/it]Loading checkpoint shards: 100%|██████████| 3/3 [00:50<00:00, 16.78s/it]
+  -> gpt-oss-20b/umwp  (best_layer=18, base_F1=0.877)
+  -> gpt-oss-20b/treecut  (best_layer=16, base_F1=0.725)
+[DeepSeek-R1-Distill-Qwen-32B] nothing to do, skipping
+[DeepSeek-R1-Distill-Llama-70B] nothing to do, skipping
+[Qwen2.5-72B-Instruct] nothing to do, skipping
+
+Wrote summary across 42 (model, dataset) pairs to /home/hwang302/.local/nlp/CARDS/experiment_result/causal_results/_measurement_A_sweep/summary.csv
+
+HEADLINE  v_probe margin range across 42 pairs: [-0.0330, +0.1429]
+          v_rand  margin range across 42 pairs: [-0.0137, +0.0986]
+          n pairs with no abs/num tokens in v_probe top-50: see per_pair tables
+Saved figure to /home/hwang302/.local/nlp/CARDS/experiment_result/causal_results/_measurement_A_sweep/fig_margin_sweep.png

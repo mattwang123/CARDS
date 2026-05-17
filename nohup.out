@@ -1,0 +1,8 @@
+usage: final_layer_probe.py [-h] [--model MODEL] [--all_models]
+                            [--dataset {umwp,treecut}] [--all_datasets]
+                            [--smoke] [--force] [--aggregate_only]
+final_layer_probe.py: error: unrecognized arguments: \
+usage: final_layer_probe.py [-h] [--model MODEL] [--all_models]
+                            [--dataset {umwp,treecut}] [--all_datasets]
+                            [--smoke] [--force] [--aggregate_only]
+final_layer_probe.py: error: unrecognized arguments: \
